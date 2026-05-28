@@ -1,15 +1,15 @@
 # 🌧️ RiskAware — Rainfall and Soil Water Tools
 
-A suite of three Australian rainfall and soil water analysis tools,
+A suite of four weather and climate analysis tools,
 built with [Streamlit](https://streamlit.io) and powered by the
-[SILO](https://www.longpaddock.qld.gov.au/silo/) climate database
+[SILO](https://www.longpaddock.qld.gov.au/silo/), an Australian climate database
 (Queensland Government / Bureau of Meteorology).
 
 **Live app:** [riskaware.streamlit.app](https://riskaware.streamlit.app)
 
 ---
 
-## The three tools
+## The four tools
 
 ### 📈 How's the season?
 Compares the current season's cumulative rainfall against every year on record
@@ -41,6 +41,10 @@ at a chosen weather station.
 - Water balance summary table (rainfall, runoff, soil evap, drainage, Δ soil water)
 - Export to JPEG
 
+### 💧 Snapshot
+Graphical presentation of the previous full 12 months daily temperatures and monthly rainfall 
+along with long term annual rainfall.
+- Export to JPEG
 ---
 
 ## Shared SILO data layer
@@ -68,6 +72,7 @@ RiskAware/
 │   ├── 1_Season.py           # How's the season?
 │   ├── 2_Odds.py             # What are the odds?
 │   └── 3_Howwet.py           # How much rain stored?
+│   └── 4_Snapshot.py         # Last years weather
 ├── core/
 │   ├── __init__.py
 │   ├── silo.py               # SILO API — shared fetch, cache, and slice helpers
