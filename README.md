@@ -44,12 +44,20 @@ at a chosen weather station.
 ### 💧 Snapshot
 Graphical presentation of the previous full 12 months daily temperatures and monthly rainfall 
 along with long term annual rainfall.
-- Export to JPEG
+- These two graphic analyses of last years temperature and rainfall and long term rainfall provide
+- users with a picture of recent weather (temperature and rainfall) over the last 12 months 
+- and long term (100 years) of anual rainfall and running means. T
+- hese graphics highlight cent condtions and also the variablity of each locations weather.
+- more recent detail on local weather can be found in the Australian CliMate app 
+- (https://climateapp.net.au/) and RiskAware, a companion to this analysis. 
+- Date is sourced from The Queensland Goverbnments Silo database 
+- David Freebairn using Claude May 2026
+- Export to JPEG and HTML 
 ---
 
 ## Shared SILO data layer
 
-All three pages share a single SILO download per session. The first page run
+All four pages share a single SILO download per session. The first page run
 fetches the full station record (1900 → today) and caches it in session state.
 Switching between pages or changing analysis periods uses in-memory slices —
 no repeated downloads.
