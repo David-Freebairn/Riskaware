@@ -1,8 +1,8 @@
 # 🌧️ RiskAware — Rainfall and Soil Water Tools
 
-A suite of four weather and climate analysis tools,
+A suite of four Australian rainfall and soil water analysis tools,
 built with [Streamlit](https://streamlit.io) and powered by the
-[SILO](https://www.longpaddock.qld.gov.au/silo/), an Australian climate database
+[SILO](https://www.longpaddock.qld.gov.au/silo/) climate database
 (Queensland Government / Bureau of Meteorology).
 
 **Live app:** [riskaware.streamlit.app](https://riskaware.streamlit.app)
@@ -41,18 +41,16 @@ at a chosen weather station.
 - Water balance summary table (rainfall, runoff, soil evap, drainage, Δ soil water)
 - Export to JPEG
 
-### 💧 Snapshot
-Graphical presentation of the previous full 12 months daily temperatures and monthly rainfall 
-along with long term annual rainfall.
-- These two graphic analyses of last years temperature and rainfall and long term rainfall provide
-- users with a picture of recent weather (temperature and rainfall) over the last 12 months 
-- and long term (100 years) of anual rainfall and running means. T
-- hese graphics highlight cent condtions and also the variablity of each locations weather.
-- more recent detail on local weather can be found in the Australian CliMate app 
-- (https://climateapp.net.au/) and RiskAware, a companion to this analysis. 
-- Date is sourced from The Queensland Goverbnments Silo database 
-- David Freebairn using Claude May 2026
-- Export to JPEG and HTML 
+### 📸 Snapshot
+Weather and climate summary for a selected station — a quick reference for
+the last full year and the long-term rainfall record.
+
+- **Last full calendar year** — daily temperature (max/min with long-term averages as dashed lines)
+  and monthly rainfall compared against the long-term monthly mean
+- **Last 100 years** — annual rainfall bar chart with 5-, 10-, and 30-year rolling averages
+- Interactive Plotly charts in the browser (hover, zoom, save)
+- Export to JPEG (static three-panel figure) or interactive HTML
+
 ---
 
 ## Shared SILO data layer
@@ -63,7 +61,7 @@ Switching between pages or changing analysis periods uses in-memory slices —
 no repeated downloads.
 
 Changing station (via the **Change** button) clears the cache and triggers a
-fresh download.
+fresh download for the new station.
 
 ---
 
@@ -79,8 +77,8 @@ RiskAware/
 ├── pages/
 │   ├── 1_Season.py           # How's the season?
 │   ├── 2_Odds.py             # What are the odds?
-│   └── 3_Howwet.py           # How much rain stored?
-│   └── 4_Snapshot.py         # Last years weather
+│   ├── 3_Howwet.py           # How much rain stored?
+│   └── 4_Snapshot.py         # Climate snapshot
 ├── core/
 │   ├── __init__.py
 │   ├── silo.py               # SILO API — shared fetch, cache, and slice helpers
@@ -121,10 +119,13 @@ streamlit>=1.32
 pandas>=2.0
 numpy>=1.24
 matplotlib>=3.7
+plotly>=5.0
 requests>=2.28
 openpyxl>=3.1
 lxml>=4.9
 ```
+
+Note: `plotly` is required for the interactive charts in the Snapshot page.
 
 ---
 
@@ -159,7 +160,8 @@ water quality of agricultural landscapes and catchments.
 
 **Interface**
 Freebairn DM, McClymont D (2025). Australian CliMate — a decision support tool
-for agricultural decision makers. Preprint DOI: https://doi.org/10.20944/preprints202507.1081.v1
+for agricultural decision makers.
+Preprint DOI: https://doi.org/10.20944/preprints202507.1081.v1
 
 Freebairn DM, Ghahramani A, Robinson JB, McClymont D (2018). A tool for monitoring
 soil water using modelling, on-farm data, and mobile technology.
