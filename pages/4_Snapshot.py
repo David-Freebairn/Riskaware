@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from core.silo   import ensure_climate_cached, search_stations
+from core.silo   import ensure_climate_cached, search_stations, slice_climate
 from core.styles import apply_styles, save_station, load_station
 
 # ── Page config ───────────────────────────────────────────────────────────────
@@ -40,16 +40,19 @@ st.caption("Last year's weather · long-term rainfall")
 # ── Station selector (mirrors other pages) ────────────────────────────────────
 station = load_station()
 
+# ── Handle Change button reset (must happen before widgets render) ────────────
+if st.session_state.pop("snap_reset", False):
+    st.session_state["snap_stations"] = []
+    st.session_state["snap_query"]    = ""
+    st.session_state["snap_confirmed"]= False
+    st.session_state.pop("climate_df",  None)
+    st.session_state.pop("climate_key", None)
+    save_station(None)
+
 # Init session keys
-for k, v in [("snap_stations", []), ("snap_query", ""), ("snap_reset", False)]:
+for k, v in [("snap_stations", []), ("snap_query", ""), ("snap_confirmed", False)]:
     if k not in st.session_state:
         st.session_state[k] = v
-
-if st.session_state.snap_reset:
-    st.session_state.snap_reset  = False
-    st.session_state.snap_stations = []
-    station = None
-    save_station(None)
 
 # Show current station + Change button
 if station:
@@ -64,8 +67,8 @@ if station:
         )
     with c2:
         if st.button("Change", key="snap_change"):
-            st.session_state.snap_reset = True
-            st.rerun()
+                st.session_state["snap_reset"] = True
+                st.rerun()
 else:
     # Search form
     with st.form("snap_search"):
