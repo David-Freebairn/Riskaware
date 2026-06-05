@@ -3,10 +3,6 @@ Home.py — Landing page for the rainfall-tools suite
 """
 
 import streamlit as st
-from core.silo import clear_stale_cache
-
-# Clean up disk cache files older than 7 days — runs once per session
-clear_stale_cache(max_age_days=7)
 
 st.set_page_config(
     page_title="RiskAware",
@@ -27,6 +23,8 @@ html, body, [class*="css"] { font-family: 'Source Sans 3', sans-serif; }
 [data-testid="stSidebarNav"] a[href*="2_Odds"]::before { content: "Odds?"; visibility: visible; }
 [data-testid="stSidebarNav"] a[href*="3_Howwet"] span { visibility: hidden; }
 [data-testid="stSidebarNav"] a[href*="3_Howwet"]::before { content: "Water stored?"; visibility: visible; }
+[data-testid="stSidebarNav"] a[href*="4_Snapshot"] span { visibility: hidden; }
+[data-testid="stSidebarNav"] a[href*="4_Snapshot"]::before { content: "Snapshot"; visibility: visible; }
 
 .tool-card {
     border: 1.5px solid #d0dcea;
@@ -66,7 +64,7 @@ st.markdown(
 )
 st.divider()
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     with st.container():
@@ -105,6 +103,19 @@ with col3:
         </div>
         """, unsafe_allow_html=True)
         st.page_link("pages/3_Howwet.py", label="Open", icon="💧")
+
+with col4:
+    with st.container():
+        st.markdown("""
+        <div class="tool-card">
+            <div class="tool-title">📸 Snapshot</div>
+            <div class="tool-desc">
+                Last year's temperature and rainfall, plus 100 years of annual
+                rainfall with rolling averages. Interactive and exportable.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.page_link("pages/4_Snapshot.py", label="Open", icon="📸")
 
 st.divider()
 st.caption(
