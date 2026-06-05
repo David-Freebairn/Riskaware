@@ -16,8 +16,10 @@ P51 response format:
 import urllib.parse
 import urllib.request
 import io
+import time
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 # ── Config ───────────────────────────────────────────────────────────────────
 _PATCHEDPT = "https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php"
@@ -373,9 +375,11 @@ def fetch_patched_point(station_id: int, start: str, end: str,
     return fetch_station_met(station_id, start, end, lat=lat, lon=lon)
 
 
-# ── Shared session-state climate cache ───────────────────────────────────────
+# ── Shared session-state + disk climate cache ────────────────────────────────
 
-_FULL_START = "19000101"
+_FULL_START    = "19000101"
+_CACHE_DIR     = Path(__file__).resolve().parent.parent / ".silo_cache"
+_CACHE_MAX_AGE = 24 * 3600   # seconds — re-download if file older than this
 
 
 def _full_end() -> str:
@@ -383,23 +387,92 @@ def _full_end() -> str:
     return _date.today().strftime("%Y%m%d")
 
 
+def _cache_path(station_id: int) -> Path:
+    _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    return _CACHE_DIR / f"{station_id}.parquet"
+
+
+def _cache_is_fresh(path: Path) -> bool:
+    """True if the cache file exists and is less than 24 hours old."""
+    if not path.exists():
+        return False
+    age = time.time() - path.stat().st_mtime
+    return age < _CACHE_MAX_AGE
+
+
+def _load_disk_cache(station_id: int) -> "pd.DataFrame | None":
+    path = _cache_path(station_id)
+    if not _cache_is_fresh(path):
+        return None
+    try:
+        return pd.read_parquet(path)
+    except Exception:
+        return None
+
+
+def _save_disk_cache(station_id: int, df: pd.DataFrame) -> None:
+    try:
+        path = _cache_path(station_id)
+        df.to_parquet(path)
+    except Exception:
+        pass   # disk write failure is non-fatal
+
+
 def ensure_climate_cached(station_id: int,
                            lat: float = None, lon: float = None,
                            session_state=None) -> pd.DataFrame:
     """
     Return full met DataFrame (1900 → today) for this station.
-    Downloads only if not already cached in session_state['climate_df'].
-    Cache key is station_id only — all pages share the same download.
+
+    Priority order:
+      1. session_state  — instant (same browser session)
+      2. disk cache     — ~0.1 s  (parquet file < 24 hours old)
+      3. SILO download  — 15–25 s (writes to both disk and session_state)
+
+    Cache key is station_id only — all pages share the same data.
     """
     import streamlit as _st
     ss = session_state if session_state is not None else _st.session_state
+
     key = f"climate_{station_id}"
+
+    # 1. Session state
     if ss.get("climate_key") == key and ss.get("climate_df") is not None:
         return ss["climate_df"]
+
+    # 2. Disk cache
+    df = _load_disk_cache(station_id)
+    if df is not None:
+        ss["climate_df"]  = df
+        ss["climate_key"] = key
+        return df
+
+    # 3. Download from SILO
     df = fetch_station_met(station_id, _FULL_START, _full_end(), lat=lat, lon=lon)
+    _save_disk_cache(station_id, df)
     ss["climate_df"]  = df
     ss["climate_key"] = key
     return df
+
+
+def clear_stale_cache(max_age_days: int = 7) -> int:
+    """
+    Delete disk cache files older than max_age_days.
+    Returns number of files deleted.
+    Safe to call at app startup.
+    """
+    if not _CACHE_DIR.exists():
+        return 0
+    cutoff = time.time() - max_age_days * 86400
+    deleted = 0
+    for f in _CACHE_DIR.glob("*.parquet"):
+        try:
+            if f.stat().st_mtime < cutoff:
+                f.unlink()
+                deleted += 1
+        except Exception:
+            pass
+    return deleted
 
 
 def slice_climate(df: pd.DataFrame, start=None, end=None) -> pd.DataFrame:
