@@ -27,83 +27,133 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from core.silo   import ensure_climate_cached, search_stations, slice_climate
+from core.silo   import ensure_climate_cached, search_stations
 from core.styles import apply_styles, save_station, load_station
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Snapshot · RiskAware", layout="wide")
 apply_styles()
 
-st.markdown("## 📸 Snapshot")
+st.markdown("## 📸 Snapshot (annual)")
 st.caption("Last year's weather · long-term rainfall")
-
-# ── Station selector (mirrors other pages) ────────────────────────────────────
-station = load_station()
 
 # ── Handle Change button reset (must happen before widgets render) ────────────
 if st.session_state.pop("snap_reset", False):
-    st.session_state["snap_stations"] = []
-    st.session_state["snap_query"]    = ""
-    st.session_state["snap_confirmed"]= False
+    st.session_state["snap_stations"]  = []
+    st.session_state["snap_confirmed"] = False
+    st.session_state["snap_chosen"]    = None
+    st.session_state["snap_last_query"]= ""
+    st.session_state["snap_query"]     = ""
     st.session_state.pop("climate_df",  None)
     st.session_state.pop("climate_key", None)
+    st.session_state.pop("_shared_station", None)
     save_station(None)
 
 # Init session keys
-for k, v in [("snap_stations", []), ("snap_query", ""), ("snap_confirmed", False)]:
+for k, v in [("snap_stations", []), ("snap_confirmed", False),
+             ("snap_chosen", None), ("snap_last_query", "")]:
     if k not in st.session_state:
         st.session_state[k] = v
 
-# Show current station + Change button
-if station:
-    c1, c2 = st.columns([5, 1])
-    with c1:
-        st.markdown(
-            f"**{station['name']}** "
-            f"<span style='font-size:0.8rem;color:#888'>"
-            f"Station {station.get('number') or station.get('id','')} · {station.get('state','')} · "
-            f"{station['lat']:.3f}, {station['lon']:.3f}</span>",
-            unsafe_allow_html=True,
+# Pre-populate from shared station
+_shared = load_station()
+if _shared and not st.session_state.get("snap_confirmed"):
+    st.session_state["snap_stations"]  = [_shared]
+    st.session_state["snap_confirmed"] = True
+    st.session_state["snap_chosen"]    = _shared.get("label", "")
+
+# ── Select site ───────────────────────────────────────────────────────────────
+with st.container(border=True):
+    st.markdown('<p class="section-title">Select site</p>', unsafe_allow_html=True)
+
+    confirmed = st.session_state.get("snap_confirmed", False)
+    station   = None
+
+    if not confirmed:
+        query = st.text_input(
+            "station", label_visibility="collapsed",
+            placeholder="Search station — e.g. Roma, Cairns  (press Enter)",
+            key="snap_query",
         )
-    with c2:
-        if st.button("Change", key="snap_change"):
+        if query and len(query) >= 3:
+            if st.session_state.get("snap_last_query") != query:
+                with st.spinner("Searching..."):
+                    try:
+                        st.session_state["snap_stations"] = search_stations(query.strip())
+                    except Exception as e:
+                        st.error(f"Search failed: {e}")
+                        st.session_state["snap_stations"] = []
+                st.session_state["snap_last_query"] = query
+                st.session_state.pop("climate_df",  None)
+                st.session_state.pop("climate_key", None)
+
+            stations = st.session_state.get("snap_stations", [])
+            if stations:
+                labels = [s["label"] for s in stations]
+                chosen = st.session_state.get("snap_chosen") or labels[0]
+                if chosen not in labels:
+                    chosen = labels[0]
+                if len(labels) == 1:
+                    st.session_state["snap_chosen"]    = labels[0]
+                    st.session_state["snap_confirmed"] = True
+                    save_station(stations[0])
+                    st.rerun()
+                else:
+                    st.caption(f"**{len(labels)} stations found** — select one:")
+                    def on_snap_pick():
+                        st.session_state["snap_chosen"]    = st.session_state["snap_radio"]
+                        st.session_state["snap_confirmed"] = True
+                    rc1, rc2 = st.columns([5, 1])
+                    with rc1:
+                        chosen = st.radio(
+                            "Station", options=labels,
+                            index=labels.index(chosen) if chosen in labels else 0,
+                            key="snap_radio", label_visibility="collapsed",
+                            on_change=on_snap_pick,
+                        )
+                        st.session_state["snap_chosen"] = chosen
+                    with rc2:
+                        st.markdown('<div style="margin-top:4px">', unsafe_allow_html=True)
+                        if st.button("Select", key="snap_select", width="stretch"):
+                            st.session_state["snap_chosen"]    = chosen
+                            st.session_state["snap_confirmed"] = True
+                            save_station(next(s for s in stations if s["label"] == chosen))
+                            st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
+            elif st.session_state.get("snap_last_query"):
+                st.warning("No stations found. Try a shorter search term.")
+
+    else:
+        chosen   = st.session_state.get("snap_chosen", "")
+        stations = st.session_state.get("snap_stations", [])
+        last_year = date.today().year - 1
+        c1, c2, c3, c4 = st.columns([3.5, 0.8, 1.3, 1.4])
+        with c1:
+            st.success(f"📍 {chosen}")
+        with c2:
+            st.markdown(
+                '<div style="margin-top:8px; font-size:0.9rem; color:#555;">Year</div>',
+                unsafe_allow_html=True)
+        with c3:
+            snap_year = st.number_input(
+                "snap_year", label_visibility="collapsed",
+                min_value=1900, max_value=date.today().year,
+                value=st.session_state.get("snap_year", last_year),
+                step=1, key="snap_year_input",
+            )
+            st.session_state["snap_year"] = snap_year
+        with c4:
+            st.markdown('<div style="margin-top:4px">', unsafe_allow_html=True)
+            if st.button("Change", key="snap_change", width="stretch"):
                 st.session_state["snap_reset"] = True
                 st.rerun()
-else:
-    # Search form
-    with st.form("snap_search"):
-        c1, c2 = st.columns([4, 1])
-        with c1:
-            q = st.text_input("Station", placeholder="e.g. Roma, Cairns, Longreach",
-                              label_visibility="collapsed",
-                              value=st.session_state.snap_query)
-        with c2:
-            submitted = st.form_submit_button("Search", use_container_width=True)
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
-    if submitted and q.strip():
-        st.session_state.snap_query = q.strip()
-        with st.spinner("Searching SILO..."):
-            try:
-                st.session_state.snap_stations = search_stations(q.strip())
-            except Exception as e:
-                st.error(f"Search failed: {e}")
-
-    if st.session_state.snap_stations:
-        stations = st.session_state.snap_stations
-        if len(stations) == 1:
-            station = stations[0]
-            save_station(station)
-            st.session_state.snap_stations = []
-            st.rerun()
-        else:
-            st.markdown(f"**{len(stations)} stations found — select one:**")
-            for s in stations:
-                meta = (f"ID {s.get('number') or s.get('id','')} · {s.get('state','')} · "
-                        f"{s['lat']:.3f}, {s['lon']:.3f}")
-                if st.button(f"**{s['name']}** — {meta}", key=f"snap_s_{s.get('number') or s.get('id','')}"):
-                    save_station(s)
-                    st.session_state.snap_stations = []
-                    st.rerun()
+        if stations:
+            station = next((s for s in stations if s["label"] == chosen), None)
+            if station:
+                save_station(station)
 
 # ── Data & charts ─────────────────────────────────────────────────────────────
 if not station:
@@ -113,17 +163,18 @@ sid  = station.get("number") or station.get("id")
 lat  = station["lat"]
 lon  = station["lon"]
 
-today     = date.today()
-with st.spinner(f"Loading climate data for {station['name']}…"):
+today = date.today()
+with st.spinner(f"Loading climate data for {station['name']}… (first load may take 30–60 seconds)"):
     ensure_climate_cached(sid, lat=lat, lon=lon, session_state=st.session_state)
 
 df = st.session_state["climate_df"].copy()
 
-# Last FULL calendar year
-target_year = today.year - 1
+# Use user-selected year, fall back to last full year if unavailable
+target_year = int(st.session_state.get("snap_year", today.year - 1))
 available   = sorted(df["year"].unique())
 if target_year not in available:
     target_year = available[-1]
+    st.session_state["snap_year"] = target_year
 
 dy   = df[df["year"] == target_year].copy()
 hist = df[df["year"] < target_year].copy()
@@ -167,8 +218,8 @@ TITLE_FONT = dict(size=13, color="#444")
 AXIS_FONT  = dict(size=11)
 GRID_COLOR = "rgba(0,0,0,0.07)"
 
-# Chart 1 — last year
-st.subheader(f"Last year ({target_year})")
+# Chart 1 — selected year
+st.markdown(f"### Year — {target_year}")
 
 fig1 = make_subplots(rows=2, cols=1, shared_xaxes=False,
                      row_heights=[0.58, 0.42], vertical_spacing=0.14,
@@ -204,8 +255,7 @@ fig1.update_yaxes(title_text="°C", row=1, col=1, title_font=AXIS_FONT)
 fig1.update_yaxes(title_text="mm", row=2, col=1, title_font=AXIS_FONT, rangemode="tozero")
 st.plotly_chart(fig1, width="stretch", key="snap_fig1")
 
-# Chart 2 — 100-year
-st.subheader("Last 100 years rainfall (annual)")
+st.markdown("### Last 100 years rainfall (annual)")
 
 fig2 = go.Figure()
 fig2.add_trace(go.Bar(x=annual["year"], y=annual["total_rain"].round(),
@@ -229,10 +279,8 @@ fig2.update_yaxes(gridcolor=GRID_COLOR, title_text="mm",
 st.plotly_chart(fig2, width="stretch", key="snap_fig2")
 
 # ── Export ────────────────────────────────────────────────────────────────────
-st.divider()
-
-meta_str = (f"Station {sid} · {station.get('state','')} · "
-            f"{lat:.3f}, {lon:.3f}")
+meta_str  = (f"Station {sid} · {station.get('state','')} · "
+             f"{lat:.3f}, {lon:.3f}")
 safe_name = station["name"].replace(" ", "_")
 
 def _build_jpeg() -> io.BytesIO:
@@ -324,68 +372,14 @@ def _build_jpeg() -> io.BytesIO:
     buf.seek(0)
     return buf
 
-col1, col2 = st.columns(2)
-
-with col1:
-    with st.spinner("Generating JPEG…"):
+col_l, col_c, col_r = st.columns([1, 2, 1])
+with col_c:
+    with st.spinner("Generating image…"):
         jpeg_buf = _build_jpeg()
     st.download_button(
-        "⬇ Download snapshot (JPEG)",
+        "📥  Download snapshot (JPEG)",
         data=jpeg_buf,
         file_name=f"{safe_name}_{target_year}_snapshot.jpg",
         mime="image/jpeg",
         width="stretch",
     )
-
-with col2:
-    # Interactive HTML — combined figure
-    fig_c = make_subplots(rows=3, cols=1,
-                          row_heights=[0.33, 0.27, 0.40],
-                          vertical_spacing=0.07,
-                          subplot_titles=[
-                              f"Temperature (°C) — {target_year}",
-                              f"Rainfall (mm) — {target_year} monthly vs long-term mean",
-                              "Annual rainfall (mm) — last 100 years"])
-    for tr in fig1.data[:4]:
-        t = tr.__class__(**{k: v for k, v in tr.to_plotly_json().items()
-                            if k not in ("xaxis","yaxis")})
-        fig_c.add_trace(t, row=1, col=1)
-    for tr in fig1.data[4:]:
-        t = tr.__class__(**{k: v for k, v in tr.to_plotly_json().items()
-                            if k not in ("xaxis","yaxis")})
-        fig_c.add_trace(t, row=2, col=1)
-    for tr in fig2.data:
-        t = tr.__class__(**{k: v for k, v in tr.to_plotly_json().items()
-                            if k not in ("xaxis","yaxis")})
-        fig_c.add_trace(t, row=3, col=1)
-    fig_c.update_layout(
-        height=1150,
-        title=dict(text=f"{station['name']}  ·  {meta_str}",
-                   x=0.5, xanchor="center", font=dict(size=14, color="#333")),
-        margin=dict(l=65, r=30, t=70, b=110),
-        plot_bgcolor="white", paper_bgcolor="white",
-        bargap=0.15,
-        legend=dict(orientation="h", x=0.5, xanchor="center",
-                    y=-0.07, font=dict(size=11)),
-        showlegend=True)
-    for ann in fig_c.layout.annotations:
-        ann.update(font=TITLE_FONT, x=0.5, xanchor="center")
-    fig_c.update_xaxes(showgrid=False, tickfont=AXIS_FONT)
-    fig_c.update_yaxes(gridcolor=GRID_COLOR, tickfont=AXIS_FONT)
-    fig_c.update_xaxes(tickformat="%b", row=1, col=1)
-    fig_c.update_yaxes(title_text="°C", row=1, col=1, title_font=AXIS_FONT)
-    fig_c.update_yaxes(title_text="mm", row=2, col=1,
-                       title_font=AXIS_FONT, rangemode="tozero")
-    fig_c.update_yaxes(title_text="mm", row=3, col=1,
-                       title_font=AXIS_FONT, rangemode="tozero")
-    fig_c.update_xaxes(dtick=10, row=3, col=1)
-
-    html_bytes = fig_c.to_html(full_html=True, include_plotlyjs="cdn").encode()
-    st.download_button(
-        "⬇ Download interactive HTML",
-        data=io.BytesIO(html_bytes),
-        file_name=f"{safe_name}_{target_year}_snapshot.html",
-        mime="text/html",
-        width="stretch",
-    )
-    st.caption("Interactive version — hover, zoom, and use the 📷 icon to save individual charts.")

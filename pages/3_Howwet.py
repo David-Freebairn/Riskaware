@@ -291,124 +291,161 @@ if st.session_state.pop("hw_reset", False):
 with st.container(border=True):
     st.markdown('<p class="section-title">Select site</p>', unsafe_allow_html=True)
 
-    col1, = st.columns([1])
-    with col1:
+    confirmed    = st.session_state.get("hw_confirmed", False)
+    station_info = None
+
+    if not confirmed:
         query = st.text_input(
             "station", label_visibility="collapsed",
             placeholder="Search station — e.g. Dalby, Emerald  (press Enter)",
             key="hw_query",
         )
+        if query and len(query) >= 3:
+            if st.session_state.get("hw_last_query") != query:
+                with st.spinner("Searching..."):
+                    try:
+                        st.session_state["hw_stations"] = _search(query)
+                    except Exception as e:
+                        st.error(f"Search failed: {e}")
+                        st.session_state["hw_stations"] = []
+                st.session_state["hw_last_query"] = query
+                st.session_state["hw_sel_idx"] = 0
+                st.session_state.pop("climate_df", None)
+                st.session_state.pop("climate_key", None)
+                st.session_state.pop("hw_result",  None)
 
-    station_info = None
-    if query and len(query) >= 3:
-        if st.session_state.get("hw_last_query") != query:
-            with st.spinner("Searching..."):
-                try:
-                    st.session_state["hw_stations"] = _search(query)
-                except Exception as e:
-                    st.error(f"Search failed: {e}")
-                    st.session_state["hw_stations"] = []
-            st.session_state["hw_last_query"] = query
-            st.session_state["hw_sel_idx"] = 0
-            st.session_state.pop("climate_df", None)
-            st.session_state.pop("climate_key", None)
-
-        stations = st.session_state.get("hw_stations", [])
-        if stations:
-            labels = [s["label"] for s in stations]
-            confirmed = st.session_state.get("hw_confirmed", False)
-            chosen    = st.session_state.get("hw_chosen") or labels[0]
-            if chosen not in labels:
-                chosen = labels[0]
-            if not confirmed:
+            stations = st.session_state.get("hw_stations", [])
+            if stations:
+                labels = [s["label"] for s in stations]
+                chosen = st.session_state.get("hw_chosen") or labels[0]
+                if chosen not in labels:
+                    chosen = labels[0]
                 if len(labels) == 1:
                     st.session_state["hw_chosen"]    = labels[0]
                     st.session_state["hw_confirmed"] = True
-                    confirmed = True
-                    chosen    = labels[0]
+                    st.rerun()
                 else:
-                    current_index = labels.index(chosen) if chosen in labels else 0
-                    st.caption(f"**{len(labels)} stations found** — click to select:")
+                    st.caption(f"**{len(labels)} stations found** — select one:")
                     def on_station_pick_hw():
                         st.session_state["hw_chosen"]    = st.session_state["hw_radio"]
                         st.session_state["hw_confirmed"] = True
-                    chosen = st.radio(
-                        "Station", options=labels, index=current_index,
-                        key="hw_radio", label_visibility="collapsed",
-                        on_change=on_station_pick_hw,
-                    )
-                    st.session_state["hw_chosen"] = chosen
-            if confirmed:
-                c1, c2 = st.columns([6, 1])
-                with c1:
-                    st.success(f"📍 {chosen}")
-                with c2:
-                    if st.button("Change", key="hw_change"):
-                        st.session_state["hw_reset"] = True
-                        st.rerun()
+                    rc1, rc2 = st.columns([5, 1])
+                    with rc1:
+                        chosen = st.radio(
+                            "Station", options=labels,
+                            index=labels.index(chosen) if chosen in labels else 0,
+                            key="hw_radio", label_visibility="collapsed",
+                            on_change=on_station_pick_hw,
+                        )
+                        st.session_state["hw_chosen"] = chosen
+                    with rc2:
+                        st.markdown('<div style="margin-top:4px">', unsafe_allow_html=True)
+                        if st.button("Select", key="hw_select", width="stretch"):
+                            st.session_state["hw_chosen"]    = chosen
+                            st.session_state["hw_confirmed"] = True
+                            st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
+            elif st.session_state.get("hw_last_query"):
+                st.warning("No stations found. Try a shorter search term.")
+
+    else:
+        chosen   = st.session_state.get("hw_chosen", "")
+        stations = st.session_state.get("hw_stations", [])
+        c1, c2, c3, c4 = st.columns([3.5, 1.3, 1.3, 1.4])
+        with c1:
+            st.success(f"📍 {chosen}")
+        with c2:
+            st.markdown('<div style="margin-top:8px; font-size:0.9rem; color:#555;">Start record</div>',
+                        unsafe_allow_html=True)
+        with c3:
+            hw_start_rec = st.number_input(
+                "hw_start_rec", label_visibility="collapsed",
+                min_value=1889, max_value=date.today().year,
+                value=st.session_state.get("hw_start_rec", 1900),
+                step=1, key="hw_start_rec_input",
+            )
+            st.session_state["hw_start_rec"] = hw_start_rec
+        with c4:
+            st.markdown('<div style="margin-top:4px">', unsafe_allow_html=True)
+            if st.button("Change", key="hw_change", width="stretch"):
+                st.session_state["hw_reset"] = True
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        if stations:
             station_info = next((s for s in stations if s["label"] == chosen), None)
             if station_info:
                 st.session_state["hw_saved_station"] = station_info
                 save_station(station_info)
-        elif st.session_state.get("hw_last_query"):
-            st.warning("No stations found. Try a shorter search term.")
 
-with st.container(border=True):
-    st.markdown('<p class="section-title">Set up query</p>', unsafe_allow_html=True)
+st.markdown('<p class="section-title">Set up the soil</p>', unsafe_allow_html=True)
 
-    r1a, r1b, r1d, r1e = st.columns([1.0, 2.4, 1.0, 2.0])
-    with r1a:
-        st.markdown('<span style="font-size:1rem">Soil type</span>', unsafe_allow_html=True)
-    with r1b:
-        if soil_labels:
-            soil_idx = st.selectbox("soil", range(len(soil_labels)),
-                                    format_func=lambda i: soil_labels[i],
-                                    label_visibility="collapsed", key="hw_soil")
-            soil_path = soil_files[soil_idx]
-        else:
-            st.error("No .soil files found in data/ folder")
-            soil_path = None
-    with r1d:
-        st.markdown('<span style="font-size:1rem">Start of fallow</span>', unsafe_allow_html=True)
-    with r1e:
-        start_date = st.date_input("start", label_visibility="collapsed",
-                                   value=today - timedelta(days=180),
-                                   min_value=min_start, max_value=yesterday,
-                                   format="DD/MM/YYYY", key="hw_start")
+s1a, s1b = st.columns([1.2, 4])
+with s1a:
+    st.markdown('<span style="font-size:1.1rem">Soil type</span>', unsafe_allow_html=True)
+with s1b:
+    if soil_labels:
+        soil_idx = st.selectbox("soil", range(len(soil_labels)),
+                                format_func=lambda i: soil_labels[i],
+                                label_visibility="collapsed", key="hw_soil")
+        soil_path = soil_files[soil_idx]
+    else:
+        st.error("No .soil files found in data/ folder")
+        soil_path = None
 
+s2a, s2b, s2c, s2d = st.columns([1.2, 1.8, 1.2, 1.8])
+with s2a:
+    st.markdown('<span style="font-size:1.1rem">Start date</span>', unsafe_allow_html=True)
+with s2b:
+    start_date = st.date_input("start", label_visibility="collapsed",
+                               value=today - timedelta(days=180),
+                               min_value=min_start, max_value=yesterday,
+                               format="DD/MM/YYYY", key="hw_start")
+with s2c:
+    st.markdown('<span style="font-size:1.1rem">End date</span>', unsafe_allow_html=True)
+with s2d:
+    end_date_input = st.date_input("end", label_visibility="collapsed",
+                                   value=today - timedelta(days=3),
+                                   min_value=min_start, max_value=today,
+                                   format="DD/MM/YYYY", key="hw_end")
 
-    r2a, r2b, r2c = st.columns([1.0, 1.0, 1.0])
-    with r2a:
-        st.markdown('<span style="font-size:1rem">Soil water at start</span>', unsafe_allow_html=True)
-    with r2b:
-        init_pct = st.number_input("init_pct", label_visibility="collapsed",
-                                   min_value=0, max_value=100, value=5,
-                                   step=5, key="hw_init")
-    with r2c:
-        st.markdown('<span style="font-size:1rem">% of PAWC</span>', unsafe_allow_html=True)
+s3a, s3b, s3c = st.columns([1.2, 0.8, 2])
+with s3a:
+    st.markdown('<span style="font-size:1.1rem">Start soil water</span>', unsafe_allow_html=True)
+with s3b:
+    init_pct = st.number_input("init_pct", label_visibility="collapsed",
+                               min_value=0, max_value=100, value=5,
+                               step=5, key="hw_init")
+with s3c:
+    st.markdown('<span style="font-size:1.1rem">% PAWC</span>', unsafe_allow_html=True)
 
-col_l, col_c, col_r = st.columns([1, 2, 1])
-with col_c:
-    run_clicked = st.button("Fetch data and run analysis", type="primary",
-                            disabled=(station_info is None or soil_path is None),
-                            width='stretch')
+with st.expander("ℹ️ About this analysis"):
+    st.markdown("""
+**How much rain stored?** runs the PERFECT/HowLeaky daily soil water balance
+model for a fallow period at the selected station.
 
-# ── Run ───────────────────────────────────────────────────────────────────────
-if run_clicked:
-    if station_info is None:
-        station_info = st.session_state.get("hw_saved_station") or load_station()
-    if station_info is None:
-        st.error("Please select a weather station.")
-        st.stop()
-    if soil_path is None:
-        st.error("No soil files found.")
-        st.stop()
+- **Plant available soil water** is the water stored between wilting point and field capacity
+- **Fallow efficiency** is the % of rainfall stored as soil water
+- The current fallow is compared against the same period in previous years
+- Records sourced from SILO (Bureau of Meteorology patched point data)
+""")
+
+# ── Auto-run whenever inputs are ready ────────────────────────────────────────
+_hw_start_rec = st.session_state.get("hw_start_rec", 1900)
+_input_key = (f"{station_info['id'] if station_info else 'none'}_"
+              f"{soil_idx if soil_path else 'none'}_{start_date}_{end_date_input}_{init_pct}_{_hw_start_rec}")
+_has_result = st.session_state.get("hw_result") is not None
+
+if station_info and soil_path and (
+    _input_key != st.session_state.get("hw_input_key") or not _has_result
+):
+    st.session_state["hw_input_key"] = _input_key
 
     sid      = station_info["id"]
     stn_name = station_info["name"]
     _lat     = station_info.get("lat")
     _lon     = station_info.get("lon")
-    safe_end   = today - timedelta(days=3)
+    safe_end   = end_date_input
     hist_end   = start_date - timedelta(days=1)
     hist_start = date(hist_end.year - HISTORY_YEARS, hist_end.month, hist_end.day)
 
@@ -420,17 +457,14 @@ if run_clicked:
         st.stop()
 
     status = st.empty()
-
-    status.markdown('<p class="status-msg">Loading climate data...</p>',
+    status.markdown('<p class="status-msg">Loading climate data… (first load may take 30–60 seconds)</p>',
                     unsafe_allow_html=True)
     try:
         full_met   = ensure_climate_cached(sid, _lat, _lon,
                                            session_state=st.session_state)
         recent_met = slice_climate(full_met, start=start_date, end=safe_end)
         if recent_met.empty:
-            raise RuntimeError(
-                f"No data between {start_date} and {safe_end} for station {sid}."
-            )
+            raise RuntimeError(f"No data between {start_date} and {safe_end}.")
         end_date = recent_met.index.max().date()
         hist_met = slice_climate(full_met, start=hist_start, end=hist_end)
     except Exception as e:
@@ -438,18 +472,11 @@ if run_clicked:
         st.error(f"Climate data load failed: {e}")
         st.stop()
 
-    # ── Debug: show what SILO returned ────────────────────────────────────
     epan_sum = recent_met["epan"].fillna(0).sum() if "epan" in recent_met.columns else 0
     if epan_sum < 1.0:
-        cols = list(recent_met.columns)
-        st.warning(
-            f"⚠️ Pan evaporation missing from SILO (epan sum = {epan_sum:.1f} mm).  "
-            f"Columns returned: `{cols}`.  "
-            f"Soil evaporation will be zero — check station {sid} has evap_pan data."
-        )
+        st.warning("⚠️ Pan evaporation missing from SILO — soil evaporation may be underestimated.")
 
-    status.markdown('<p class="status-msg">Running water balance...</p>',
-                    unsafe_allow_html=True)
+    status.markdown('<p class="status-msg">Running water balance...</p>', unsafe_allow_html=True)
     try:
         recent_df, _, _ = run_water_balance(recent_met, profile, init_pct / 100.0)
     except Exception as e:
@@ -472,6 +499,25 @@ if run_clicked:
             continue
 
     status.empty()
+    st.session_state["hw_result"] = {
+        "recent_df": recent_df, "hist_dfs": hist_dfs,
+        "recent_met": recent_met, "profile": profile,
+        "stn_name": stn_name, "start_date": start_date,
+        "end_date": end_date, "init_pct": init_pct,
+    }
+
+# ── Output ────────────────────────────────────────────────────────────────────
+if st.session_state.get("hw_result"):
+    r          = st.session_state["hw_result"]
+    recent_df  = r["recent_df"]
+    hist_dfs   = r["hist_dfs"]
+    recent_met = r["recent_met"]
+    profile    = r["profile"]
+    stn_name   = r["stn_name"]
+    start_date = r["start_date"]
+    end_date   = r["end_date"]
+    init_pct   = r["init_pct"]
+    pawc       = profile.pawc_total
 
     final_pasw  = float(recent_df["pasw"].iloc[-1])
     pawc_pct    = final_pasw / pawc * 100 if pawc > 0 else 0.0
@@ -598,14 +644,17 @@ if run_clicked:
     plt.close(comp_fig)
     plt.close(fig)
 
-    st.download_button(
-        "⬇  Export JPEG", data=buf,
-        file_name=f"SoilWater_{stn_name.replace(' ','_')}_"
-                  f"{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.jpg",
-        mime="image/jpeg",
-    )
+    col_l, col_c, col_r = st.columns([1, 2, 1])
+    with col_c:
+        st.download_button(
+            "📥  Download chart (JPEG)", data=buf,
+            file_name=f"SoilWater_{stn_name.replace(' ','_')}_"
+                      f"{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.jpg",
+            mime="image/jpeg",
+            width="stretch",
+        )
 
-    with st.expander("Water balance details"):
+    with st.expander("📊 Water balance details"):
         rain_t = recent_df["rain"].sum()
         ro_t   = recent_df["runoff"].sum()
         es_t   = recent_df["soil_evap"].sum()

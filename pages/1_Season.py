@@ -304,133 +304,156 @@ if st.session_state.pop("se_reset", False):
 with st.container(border=True):
     st.markdown('<p class="section-title">Select site</p>', unsafe_allow_html=True)
 
-    col1, col2 = st.columns([1.5, 2.5])
-    with col1:
+    confirmed    = st.session_state.get("se_confirmed", False)
+    station_info = None
+
+    if not confirmed:
         query = st.text_input(
             "station", label_visibility="collapsed",
-            placeholder="Search station — e.g. Roma, Cairns",
+            placeholder="Search station — e.g. Roma, Cairns  (press Enter)",
             key="se_query",
         )
-    with col2:
-        start_year = st.number_input(
-            "Records from year", min_value=1889,
-            max_value=date.today().year, value=1980, step=1,
-            help="Earliest year to include in the historical comparison",
-        )
+        start_year = st.session_state.get("se_start_year", 1900)
 
-    station_info = None
-    if query and len(query) >= 3:
-        if st.session_state.get("se_last_query") != query:
-            with st.spinner("Searching..."):
-                try:
-                    st.session_state["se_stations"] = _search(query)
-                except Exception as e:
-                    st.error(f"Search failed: {e}")
-                    st.session_state["se_stations"] = []
-            st.session_state["se_last_query"] = query
-            st.session_state["se_sel_idx"]    = 0
-            st.session_state.pop("climate_df", None)
-            st.session_state.pop("climate_key", None)
+        if query and len(query) >= 3:
+            if st.session_state.get("se_last_query") != query:
+                with st.spinner("Searching..."):
+                    try:
+                        st.session_state["se_stations"] = _search(query)
+                    except Exception as e:
+                        st.error(f"Search failed: {e}")
+                        st.session_state["se_stations"] = []
+                st.session_state["se_last_query"] = query
+                st.session_state["se_sel_idx"]    = 0
+                st.session_state.pop("climate_df", None)
+                st.session_state.pop("climate_key", None)
+                st.session_state.pop("se_result",  None)
 
-        stations = st.session_state.get("se_stations", [])
-        if stations:
-            labels = [s["label"] for s in stations]
-            confirmed = st.session_state.get("se_confirmed", False)
-            chosen    = st.session_state.get("se_chosen") or labels[0]
-            if chosen not in labels:
-                chosen = labels[0]
-            if not confirmed:
+            stations = st.session_state.get("se_stations", [])
+            if stations:
+                labels = [s["label"] for s in stations]
+                chosen = st.session_state.get("se_chosen") or labels[0]
+                if chosen not in labels:
+                    chosen = labels[0]
                 if len(labels) == 1:
                     st.session_state["se_chosen"]    = labels[0]
                     st.session_state["se_confirmed"] = True
-                    confirmed = True
-                    chosen    = labels[0]
+                    st.rerun()
                 else:
-                    current_index = labels.index(chosen) if chosen in labels else 0
-                    st.caption(f"**{len(labels)} stations found** — click to select:")
+                    st.caption(f"**{len(labels)} stations found** — select one:")
                     def on_station_pick():
                         st.session_state["se_chosen"]    = st.session_state["se_radio"]
                         st.session_state["se_confirmed"] = True
-                    chosen = st.radio(
-                        "Station", options=labels, index=current_index,
-                        key="se_radio", label_visibility="collapsed",
-                        on_change=on_station_pick,
-                    )
-                    st.session_state["se_chosen"] = chosen
-            if confirmed:
-                c1, c2 = st.columns([6, 1])
-                with c1:
-                    st.success(f"📍 {chosen}")
-                with c2:
-                    if st.button("Change", key="se_change"):
-                        st.session_state["se_reset"] = True
-                        st.rerun()
-            station_info = next(s for s in stations if s["label"] == chosen)
-            st.session_state["se_saved"] = station_info
-            save_station(station_info)
-        elif st.session_state.get("se_last_query"):
-            st.warning("No stations found — try a shorter name.")
+                    rc1, rc2 = st.columns([5, 1])
+                    with rc1:
+                        chosen = st.radio(
+                            "Station", options=labels,
+                            index=labels.index(chosen) if chosen in labels else 0,
+                            key="se_radio", label_visibility="collapsed",
+                            on_change=on_station_pick,
+                        )
+                        st.session_state["se_chosen"] = chosen
+                    with rc2:
+                        st.markdown('<div style="margin-top:4px">', unsafe_allow_html=True)
+                        if st.button("Select", key="se_select", width="stretch"):
+                            st.session_state["se_chosen"]    = chosen
+                            st.session_state["se_confirmed"] = True
+                            st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
+            elif st.session_state.get("se_last_query"):
+                st.warning("No stations found — try a shorter name.")
 
-# ── Step 2: Select duration ───────────────────────────────────────────────────
-with st.container(border=True):
-    st.markdown('<p class="section-title">Select duration</p>', unsafe_allow_html=True)
-    r1a, r1b, r1c = st.columns([2.5, 0.7, 2.5])
-    with r1a:
-        st.markdown('<span style="font-size:1rem">How does the last</span>', unsafe_allow_html=True)
-    with r1b:
-        months_back = st.number_input(
-            "months", label_visibility="collapsed",
-            min_value=1, max_value=60, value=6, step=1,
-        )
-    with r1c:
-        st.markdown('<span style="font-size:1rem">months compare with all years on record?</span>', unsafe_allow_html=True)
+    else:
+        chosen   = st.session_state.get("se_chosen", "")
+        stations = st.session_state.get("se_stations", [])
+        c1, c2, c3, c4 = st.columns([3.5, 1.3, 1.3, 1.4])
+        with c1:
+            st.success(f"📍 {chosen}")
+        with c2:
+            st.markdown('<div style="margin-top:8px; font-size:0.9rem; color:#555;">Start record</div>',
+                        unsafe_allow_html=True)
+        with c3:
+            start_year = st.number_input(
+                "start_year", label_visibility="collapsed",
+                min_value=1889, max_value=date.today().year,
+                value=st.session_state.get("se_start_year", 1900),
+                step=1, key="se_start_year_input",
+            )
+            st.session_state["se_start_year"] = start_year
+        with c4:
+            st.markdown('<div style="margin-top:4px">', unsafe_allow_html=True)
+            if st.button("Change", key="se_change", width="stretch"):
+                st.session_state["se_reset"] = True
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
-col_l, col_c, col_r = st.columns([1, 2, 1])
-with col_c:
-    run_clicked = st.button(
-        "Run analysis",
-        type="primary",
-        disabled=(station_info is None),
-        width='stretch',
+        if stations:
+            station_info = next((s for s in stations if s["label"] == chosen), None)
+            if station_info:
+                st.session_state["se_saved"] = station_info
+                save_station(station_info)
+
+# ── Step 2: Duration ─────────────────────────────────────────────────────────
+r1a, r1b, r1c = st.columns([2.2, 0.6, 3.5])
+with r1a:
+    st.markdown('<span style="font-size:1.1rem">How do the last</span>', unsafe_allow_html=True)
+with r1b:
+    months_back = st.number_input(
+        "months", label_visibility="collapsed",
+        min_value=1, max_value=60, value=6, step=1,
     )
+with r1c:
+    st.markdown('<span style="font-size:1.1rem">months compare?</span>', unsafe_allow_html=True)
+
+# ── Info expander ─────────────────────────────────────────────────────────────
+with st.expander("ℹ️ About this analysis"):
+    st.markdown("""
+**How's the season?** compares cumulative rainfall for the current season against
+every comparable year on record at the selected station.
+
+- The **percentile** shows where the current season sits relative to history
+- The **dashed line** is the day-by-day median across all comparable years
+- Current year shown in **bold red**; all historical years in light blue
+- Records sourced from SILO (Bureau of Meteorology patched point data)
+""")
+
+# ── Auto-run whenever station and inputs are ready ────────────────────────────
+_start_year = st.session_state.get("se_start_year", 1900)
+_input_key  = f"{station_info['id'] if station_info else 'none'}_{_start_year}_{months_back}"
+_has_result = st.session_state.get("se_result") is not None
+
+if station_info and (_input_key != st.session_state.get("se_input_key") or not _has_result):
+    st.session_state["se_input_key"] = _input_key
+    sid  = station_info["id"]
+    _lat = station_info.get("lat")
+    _lon = station_info.get("lon")
+    name = station_info["name"]
+
+    with st.spinner(f"Loading {name}… (first load may take 30–60 seconds)"):
+        try:
+            full_df = ensure_climate_cached(sid, _lat, _lon,
+                                            session_state=st.session_state)
+            df = slice_climate(full_df, start=f"{int(_start_year)}0101")[
+                ["rain", "year", "month", "day", "doy"]
+            ]
+        except Exception as e:
+            st.error(f"Data fetch failed: {e}")
+            st.stop()
+
+    if df.empty:
+        st.error("No data found for this station and period.")
+        st.stop()
+
+    st.session_state["se_result"] = {
+        "df": df, "name": name, "station_info": station_info,
+    }
 
 # ── Analysis ──────────────────────────────────────────────────────────────────
-if run_clicked or st.session_state.get("se_result"):
-    if run_clicked:
-        if station_info is None:
-            station_info = st.session_state.get("se_saved") or load_station()
-        if station_info is None:
-            st.error("Please select a station.")
-            st.stop()
-
-        sid  = station_info["id"]
-        _lat = station_info.get("lat")
-        _lon = station_info.get("lon")
-        name = station_info["name"]
-
-        with st.spinner(f"Fetching data for {name}..."):
-            try:
-                full_df = ensure_climate_cached(sid, _lat, _lon,
-                                                session_state=st.session_state)
-                df = slice_climate(full_df, start=f"{int(start_year)}0101")[
-                    ["rain", "year", "month", "day", "doy"]
-                ]
-            except Exception as e:
-                st.error(f"Data fetch failed: {e}")
-                st.stop()
-
-        if df.empty:
-            st.error("No data found for this station and period.")
-            st.stop()
-
-        st.session_state["se_result"] = {
-            "df": df, "name": name, "station_info": station_info,
-        }
-    else:
-        res  = st.session_state["se_result"]
-        df   = res["df"]
-        name = res["name"]
-        station_info = res.get("station_info", {})
+if st.session_state.get("se_result"):
+    res  = st.session_state["se_result"]
+    df   = res["df"]
+    name = res["name"]
+    station_info = res.get("station_info", {})
 
     # Run analysis
     ann_totals = df.groupby(df.index.year)["rain"].sum()
@@ -438,10 +461,9 @@ if run_clicked or st.session_state.get("se_result"):
     min_y, max_y = data_years[0], data_years[-1]
     ann_mean = int(ann_totals.mean())
 
-    with st.spinner("Analysing..."):
-        series, current_year, median_ser, pctile, diff_mm, stats = build_series(
-            df, int(months_back)
-        )
+    series, current_year, median_ser, pctile, diff_mm, stats = build_series(
+        df, int(months_back)
+    )
 
     if series is None:
         st.warning("Not enough data for this window.")
@@ -601,9 +623,12 @@ if run_clicked or st.session_state.get("se_result"):
     plt.close(comp_fig)
     plt.close(fig)
 
-    st.download_button(
-        "⬇  Export JPEG",
-        data=buf,
-        file_name=f"season_{name.replace(' ', '_')}_{months_back}mo.jpg",
-        mime="image/jpeg",
-    )
+    col_l, col_c, col_r = st.columns([1, 2, 1])
+    with col_c:
+        st.download_button(
+            "📥  Download chart (JPEG)",
+            data=buf,
+            file_name=f"season_{name.replace(' ', '_')}_{months_back}mo.jpg",
+            mime="image/jpeg",
+            width="stretch",
+        )

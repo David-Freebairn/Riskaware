@@ -111,15 +111,14 @@ if st.session_state.pop("odds_reset", False):
 def do_search():
     term = st.session_state.search_input
     if term and term != st.session_state.last_search:
-        st.session_state.last_search = term
-        st.session_state.stations = []
-        st.session_state.selected_station = None
+        st.session_state.last_search       = term
+        st.session_state.stations          = []
+        st.session_state.selected_station  = None
         st.session_state.station_confirmed = False
-        st.session_state.station_chosen = None
-        st.session_state.pop("climate_df", None)
+        st.session_state.station_chosen    = None
+        st.session_state.pop("climate_df",  None)
         st.session_state.pop("climate_key", None)
-        st.session_state.station_confirmed = False
-        st.session_state.station_chosen = None
+        st.session_state.pop("odds_result", None)
         try:
             st.session_state.stations = _search(term)
         except Exception as e:
@@ -128,106 +127,148 @@ def do_search():
 
 with st.container(border=True):
     st.markdown('<p class="section-title">Select site</p>', unsafe_allow_html=True)
-    col1, col2 = st.columns([2.5, 1.0])
-    with col1:
+
+    confirmed    = st.session_state.get("station_confirmed", False)
+    selected_station = None
+
+    if not confirmed:
         st.text_input(
             "station", label_visibility="collapsed",
             placeholder="Search station — e.g. Roma, Cairns  (press Enter)",
             key="search_input", on_change=do_search,
         )
-    with col2:
-        start_year = st.number_input(
-            "Records from year", min_value=1889,
-            max_value=date.today().year, value=1900, step=1,
-        )
-    start_date = date(int(start_year), 1, 1)
 
-    if st.session_state.get("search_error"):
-        st.error(f"Search failed: {st.session_state.search_error}")
-        st.session_state.search_error = None
+        if st.session_state.get("search_error"):
+            st.error(f"Search failed: {st.session_state.search_error}")
+            st.session_state.search_error = None
 
-    if st.session_state.stations:
-        labels = [s["label"] for s in st.session_state.stations]
-        confirmed = st.session_state.get("station_confirmed", False)
-        chosen    = st.session_state.get("station_chosen") or labels[0]
-        if chosen not in labels:
-            chosen = labels[0]
-        if not confirmed:
+        if st.session_state.stations:
+            labels = [s["label"] for s in st.session_state.stations]
+            chosen = st.session_state.get("station_chosen") or labels[0]
+            if chosen not in labels:
+                chosen = labels[0]
             if len(labels) == 1:
                 st.session_state.station_chosen    = labels[0]
                 st.session_state.station_confirmed = True
-                confirmed = True
-                chosen    = labels[0]
+                st.rerun()
             else:
-                current_index = labels.index(chosen) if chosen in labels else 0
-                st.caption(f"**{len(labels)} stations found** — click to select:")
+                st.caption(f"**{len(labels)} stations found** — select one:")
                 def on_station_pick():
                     st.session_state.station_chosen    = st.session_state.station_select
                     st.session_state.station_confirmed = True
-                chosen = st.radio(
-                    "Station", options=labels, index=current_index,
-                    key="station_select", label_visibility="collapsed",
-                    on_change=on_station_pick,
-                )
-                st.session_state.station_chosen = chosen
-        if confirmed:
-            c1, c2 = st.columns([6, 1])
-            with c1:
-                st.success(f"📍 {chosen}")
-            with c2:
-                if st.button("Change", key="change_btn"):
-                    st.session_state["odds_reset"] = True
-                    st.rerun()
-        st.session_state.selected_station = next(
-            s for s in st.session_state.stations if s["label"] == chosen
-        )
-        save_station(st.session_state.selected_station)
-    elif st.session_state.last_search:
-        st.warning("No stations found. Try a shorter search term.")
+                rc1, rc2 = st.columns([5, 1])
+                with rc1:
+                    chosen = st.radio(
+                        "Station", options=labels,
+                        index=labels.index(chosen) if chosen in labels else 0,
+                        key="station_select", label_visibility="collapsed",
+                        on_change=on_station_pick,
+                    )
+                    st.session_state.station_chosen = chosen
+                with rc2:
+                    st.markdown('<div style="margin-top:4px">', unsafe_allow_html=True)
+                    if st.button("Select", key="odds_select", width="stretch"):
+                        st.session_state.station_chosen    = chosen
+                        st.session_state.station_confirmed = True
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+        elif st.session_state.last_search:
+            st.warning("No stations found. Try a shorter search term.")
 
+    else:
+        chosen   = st.session_state.get("station_chosen", "")
+        stations = st.session_state.get("stations", [])
+        c1, c2, c3, c4 = st.columns([3.5, 1.3, 1.3, 1.4])
+        with c1:
+            st.success(f"📍 {chosen}")
+        with c2:
+            st.markdown('<div style="margin-top:8px; font-size:0.9rem; color:#555;">Start record</div>',
+                        unsafe_allow_html=True)
+        with c3:
+            start_year = st.number_input(
+                "start_year", label_visibility="collapsed",
+                min_value=1889, max_value=date.today().year,
+                value=st.session_state.get("odds_start_year", 1900),
+                step=1, key="odds_start_year_input",
+            )
+            st.session_state["odds_start_year"] = start_year
+        with c4:
+            st.markdown('<div style="margin-top:4px">', unsafe_allow_html=True)
+            if st.button("Change", key="change_btn", width="stretch"):
+                st.session_state["odds_reset"] = True
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        if stations:
+            selected_station = next(
+                (s for s in stations if s["label"] == chosen), None
+            )
+            if selected_station:
+                st.session_state.selected_station = selected_station
+                save_station(selected_station)
+
+start_date   = date(int(st.session_state.get("odds_start_year", 1900)), 1, 1)
 selected_station = st.session_state.get("selected_station") or load_station()
 
-
 # ── Panel 2 — Query ───────────────────────────────────────────────────────────
-with st.container(border=True):
-    st.markdown('<p class="section-title">Set up query</p>', unsafe_allow_html=True)
+r1a, r1b, r1c, r1d, r1e = st.columns([2.5, 0.8, 1.2, 0.8, 0.6])
+with r1a:
+    st.markdown('<span style="font-size:1.1rem">Chances of getting</span>', unsafe_allow_html=True)
+with r1b:
+    threshold = st.number_input("mm", label_visibility="collapsed",
+                                min_value=1, max_value=9999, value=25, step=5)
+with r1c:
+    st.markdown('<span style="font-size:1.1rem">mm rain in</span>', unsafe_allow_html=True)
+with r1d:
+    win_days = st.number_input("days", label_visibility="collapsed",
+                               min_value=1, max_value=365, value=5, step=1)
+with r1e:
+    st.markdown('<span style="font-size:1.1rem">days</span>', unsafe_allow_html=True)
 
-    r1a, r1b, r1c, r1d, r1e, r1f, r1g = st.columns([2.0, 0.9, 0.7, 1.1, 0.9, 0.5, 1.5])
-    with r1a: st.markdown('<span style="font-size:1rem">Explore how often</span>',
-                          unsafe_allow_html=True)
-    with r1b: threshold = st.number_input("mm", label_visibility="collapsed",
-                                          min_value=1, max_value=9999, value=25, step=5)
-    with r1c: st.markdown('<span style="font-size:1rem">mm rain occurs over</span>',
-                          unsafe_allow_html=True)
-    with r1d: win_days = st.number_input("days", label_visibility="collapsed",
-                                         min_value=1, max_value=365, value=5, step=1)
-    with r1e: st.markdown('<span style="font-size:1rem">days</span>', unsafe_allow_html=True)
+r2a, r2b, r2c, r2d, r2e, r2f, r2g = st.columns([1.4, 1.2, 0.7, 0.4, 1.2, 0.7, 0.3])
+with r2a:
+    st.markdown('<span style="font-size:1.1rem">Between</span>', unsafe_allow_html=True)
+with r2b:
+    start_mon = st.selectbox("sm", MONTHS, index=0, label_visibility="collapsed")
+with r2c:
+    start_day = st.number_input("sd", min_value=1, max_value=31, value=1,
+                                label_visibility="collapsed")
+with r2d:
+    st.markdown('<span style="font-size:1.1rem">and</span>', unsafe_allow_html=True)
+with r2e:
+    end_mon = st.selectbox("em", MONTHS, index=11, label_visibility="collapsed")
+with r2f:
+    end_day = st.number_input("ed", min_value=1, max_value=31, value=31,
+                              label_visibility="collapsed")
+with r2g:
+    st.markdown('<span style="font-size:1.3rem">?</span>', unsafe_allow_html=True)
 
-    st.markdown("")
-    r2a, r2b, r2c, r2d, r2e, r2f, r2g = st.columns([1.6, 1.5, 0.9, 0.4, 1.5, 0.9, 1.0])
-    with r2a: st.markdown('<span style="font-size:1rem">during the season</span>',
-                          unsafe_allow_html=True)
-    with r2b: start_mon = st.selectbox("sm", MONTHS, index=0, label_visibility="collapsed")
-    with r2c: start_day = st.number_input("sd", min_value=1, max_value=31, value=1,
-                                          label_visibility="collapsed")
-    with r2d: st.markdown('<span style="font-size:1rem">to</span>', unsafe_allow_html=True)
-    with r2e: end_mon = st.selectbox("em", MONTHS, index=11, label_visibility="collapsed")
-    with r2f: end_day = st.number_input("ed", min_value=1, max_value=31, value=31,
-                                         label_visibility="collapsed")
+# ── Info expander ─────────────────────────────────────────────────────────────
+with st.expander("ℹ️ About this analysis"):
+    st.markdown("""
+**What are the odds?** counts how many years had at least the specified rainfall
+within the rolling window, during the chosen season.
 
-run_btn = st.button("Fetch data and run analysis", type="primary",
-                    disabled=selected_station is None,
-                    width='stretch')
+- The **threshold** is the minimum rainfall to count as a success
+- The **window** is the number of consecutive days checked within the season
+- The season dates define which part of each year is scanned
+- Records sourced from SILO (Bureau of Meteorology patched point data)
+""")
 
+# ── Auto-run whenever station and inputs are ready ────────────────────────────
+_start_year = st.session_state.get("odds_start_year", 1900)
+_input_key  = (f"{selected_station['id'] if selected_station else 'none'}_"
+               f"{_start_year}_{threshold}_{win_days}_{start_mon}_{start_day}_{end_mon}_{end_day}")
+_has_result = st.session_state.get("odds_result") is not None
 
-# ── Analysis ──────────────────────────────────────────────────────────────────
-if run_btn and selected_station:
+if selected_station and (_input_key != st.session_state.get("odds_input_key") or not _has_result):
+    st.session_state["odds_input_key"] = _input_key
     sid  = selected_station["id"]
     name = selected_station["name"]
     _lat = selected_station.get("lat")
     _lon = selected_station.get("lon")
 
-    with st.spinner(f"Fetching data for {name}..."):
+    with st.spinner(f"Loading {name}… (first load may take 30–60 seconds)"):
         try:
             full_df = ensure_climate_cached(sid, _lat, _lon,
                                             session_state=st.session_state)
@@ -237,9 +278,17 @@ if run_btn and selected_station:
             st.error(f"Data fetch failed: {e}")
             st.stop()
 
+    st.session_state["odds_result"] = {"df": df, "name": name}
+
+# ── Analysis ──────────────────────────────────────────────────────────────────
+if st.session_state.get("odds_result"):
+    res  = st.session_state["odds_result"]
+    df   = res["df"]
+    name = res["name"]
+
     years    = sorted(df["year"].unique())
     yr_from, yr_to = years[0], years[-1]
-    ann_mean = df.groupby("year")["rain"].sum().mean()
+    ann_mean = round(df.groupby("year")["rain"].sum().mean())
 
     try:
         sm = MONTHS.index(start_mon) + 1
@@ -431,13 +480,15 @@ if run_btn and selected_station:
         st.pyplot(fig)
         plt.close(fig)
 
-        # ── Download button ────────────────────────────────────────────────
-        st.download_button(
-            "🖼️  Download summary image",
-            data=jpeg_buf,
-            file_name=f"rain_summary_{name.replace(' ', '_')}.jpg",
-            mime="image/jpeg",
-        )
+        col_l, col_c, col_r = st.columns([1, 2, 1])
+        with col_c:
+            st.download_button(
+                "📥  Download chart (JPEG)",
+                data=jpeg_buf,
+                file_name=f"rain_summary_{name.replace(' ', '_')}.jpg",
+                mime="image/jpeg",
+                width="stretch",
+            )
 
     except Exception as e:
         st.error(f"Analysis error: {e}")
