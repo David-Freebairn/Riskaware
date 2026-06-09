@@ -61,17 +61,58 @@ div[data-testid="stPageLink"] p {
 
 st.markdown("# 🌧️ RiskAware")
 st.markdown(
-    "*A suite of Australian rainfall/soil water analysis tools "
-    "powered by climate data from [SILO](https://www.longpaddock.qld.gov.au/silo/).*"
+    "*Analyses to support assessing system status (now)  "
+    "and chances (risks) of rainfall.*"
 )
 
 with st.expander("ℹ️ About RiskAware"):
     st.markdown("""
-RiskAware provides four rainfall and soil water analysis tools for Australian farmers and agronomists,
-powered by the SILO climate database (Queensland Government / Bureau of Meteorology).
+Agricultural decisions are generally based on our understanding of **Current conditions**
+and **Future expectations**.
+Current conditions are what we sense around us. Some things are obvious, some less so
+e.g. how much available water and nutrient in soils. 
+Future expectations are based on our experience, with a natural bias toward recent 
+experiences. An example “decision” might be to plant a crop now, or delay with the
+expectation of a better start later. This decision is a mix of current and future events.
+RiskAware’s four analyses provide insight into both current conditions (soil water) 
+and future events (rainfall) based recent and long-term weather records.
+Our weather history is a rich source of “book maker odds” or probabilities of future
+rainfall using what we call climatology. Application of long-term records save us from
+the trap of recent history bias.
 
-All tools share a single data download per session — selecting a station once loads the full record
-for use across all four analyses.
+- **How’s the season** simply gives us an objective assessment of the chances of rain
+     since a specified date. Is it well above, below or near average? 
+- **What are the odds?** Provides an unbiased estimate of the chances of a specified 
+     event (planting rain, wet harvest etc). 
+- **How much rain is stored?** uses recent rainfall data to estimate how well rain
+     is stored in the soil, considering evaporation, runoff and drainage losses.
+- **Snapshot** provides a graphical view of a previous year’s weather and long-term 
+     annual rainfall. How variable is weather? 
+     
+**Acknowledgements**
+
+**Weather data:** Queensland Government's SILO database sourced from the Bureau of Meteorology
+ and the many voluntary weather recorders across the Australian continent since the 1890’s
+
+**Soil water estimate:** Applies a well-tested water balance model used in models
+such as PERFECT (1989), Howwet? (1994) and ApSim (1994)
+
+**Interface:**
+ Standard graphical presentations also used in Howwet? (Dimes et al 1996)
+" and Australian CliMate (Freebairn and McClymont 2025). 
+Snapshot graphic is based on an image “NEW YORK CITY'S WEATHER FOR 1980” from the 
+New York Times  January 11th 1982, page 32, sourced from Edward Tufte (1983)
+The Visual Display of Quantitative Information.
+
+**Disclosure**
+
+These analyses have been developed based on previous experience in designing
+climate focused decision support tools. I have used Anthropic’s Claude AI software
+This software does not have the same polish as previous DSSs and was built
+to demonstrate new software and App development capabilities.
+
+**Comments welcomed** David Freebairn em: david.freebairn@gmail.com 
+
 """)
 
 st.divider()
@@ -80,23 +121,21 @@ col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.page_link("pages/1_Season.py",
-                 label="📈 **How's the season?**  \nCompare current season rainfall against selected years. This may support input decisions.")
+                 label="📈 **How's the season?**  \nCompare current season rainfall against past records.")
 
 with col2:
     st.page_link("pages/2_Odds.py",
-                 label="🎲 **What are the odds?**  \nHow often has rainfall exceeded an amount over a number of days, during a chosen season?")
+                 label="🎲 **What are the odds?**  \nHow often has rainfall exceeded an amount over a number of days, between two dates?")
 
 with col3:
     st.page_link("pages/3_Howwet.py",
-                 label="💧 **How much rain stored?**  \nTrack plant available soil water gains over fallows using local BoM rainfall data.")
+                 label="💧 **How much rain stored?**  \nTrack plant available soil water gains over fallows using a local rainfall site.")
 
 with col4:
     st.page_link("pages/4_Snapshot.py",
-                 label="📸 **Snapshot**  \nLast year's temperature and rainfall, plus 100 years of annual rainfall with rolling averages.")
+                 label="📸 **Snapshot of weather**  \nGraphs of one year's temperature and rainfall, and 100 years of annual rainfall.")
 
 st.divider()
 st.caption(
-    "Climate data: Queensland Government's SILO database sourced from the Bureau of Meteorology "
-    "Soil water estimates: PERFECT, HowLeaky (Littleboy et al. 1992)  ·  "
-    "Interface: CliMate (Freebairn and McClymont 2025)"
+    "An objective assessment of system status and rainfall risks "
 )
