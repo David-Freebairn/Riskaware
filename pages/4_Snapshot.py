@@ -3,7 +3,7 @@ pages/4_Snapshot.py  —  RiskAware
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Weather & climate snapshot for a selected station.
 
-  • Last full calendar year — daily temperature (max/min + long-term averages)
+  • Last full calendar year (default) — daily temperature (max/min + long-term averages)
                             — monthly rainfall vs long-term mean
   • Last 100 years         — annual rainfall with rolling 5/10/30-yr averages
 
@@ -34,8 +34,8 @@ from core.styles import apply_styles, save_station, load_station
 st.set_page_config(page_title="Snapshot · RiskAware", layout="wide")
 apply_styles()
 
-st.markdown("## 📸 Snapshot (annual)")
-st.caption("Last year's weather · long-term rainfall")
+st.markdown("## 📸 Snapshot")
+st.caption("A review of one year's weather and long-term rainfall")
 
 # ── Handle Change button reset (must happen before widgets render) ────────────
 if st.session_state.pop("snap_reset", False):

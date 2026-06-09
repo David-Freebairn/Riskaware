@@ -246,13 +246,23 @@ with r2g:
 # ── Info expander ─────────────────────────────────────────────────────────────
 with st.expander("ℹ️ About this analysis"):
     st.markdown("""
-**What are the odds?** counts how many years had at least the specified rainfall
-within the rolling window, during the chosen season.
+**What are the odds?** assesses the probability of receiving a specified amount of 
+rainfall (mm) within a specified period (days), between two dates. 
+Results are presented as:
+- The probability of conditions met in the past (% of years).
+- A time series chart showing hits and misses.
 
-- The **threshold** is the minimum rainfall to count as a success
-- The **window** is the number of consecutive days checked within the season
-- The season dates define which part of each year is scanned
-- Records sourced from SILO (Bureau of Meteorology patched point data)
+**Applications**
+- Assess the chances of receiving rainfall for critical events such as: planting, 
+harvest, herbicide and nutrient activation, fallow rainfall and in-crop rain.
+- Explore how sensitive your “rules” are by changing inputs and see results immediately.
+- Long-term rainfall records provide a rich and objective picture of a site’s history 
+and stretch a new land managers experience.
+- These estimates are based on what is often termed “climatology” and do not consider
+ any seasonal forecasts. 
+
+A copy of the results can be downloaded as an image.
+
 """)
 
 # ── Auto-run whenever station and inputs are ready ────────────────────────────

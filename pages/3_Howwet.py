@@ -86,14 +86,27 @@ def load_profile(soil_path: Path):
 
 def run_water_balance(met_df: pd.DataFrame, profile, init_fraction: float = 0.5):
     """
-    Run daily PERFECT fallow water balance using the best HowLeaky engine.
+  **How much rain stored?** estimates the effectiveness of fallow rain after accounting
+   for evaporation, runoff and drainage losses. 
+   Select a **soil type** that best describes your paddock. A list of 12 soil types are
+    available (shallow, average and deep phases of four texture groups). 
+    Results are presented as:
+•	  Plant available soil water **(mm)** and **% of PAWC** (how full is the bucket?)
+•	  **Fallow efficiency (%)**, a measure of how much rain was captured as plant 
+        available water (PAW).
+•	  A graph tracking soil water during the fallow, the average for this soil
+        (dotted line) and previous years (blue lines). 
+ •	  An image of where water is stored in the soil.
+ 
+**Applications**
+•	A robust estimate of each paddocks water status and an indication of how the
+      current season compared with other years.
+•	The amount of soil water at planting may influence crop choice and inputs levels.
+•	In some environments, soil water available at planting can be a major component
+    of a crops water use and critical towards flowering. Soil water provides an
+     important buffer for crop performance.
+•	A better appreciation of how fallows vary from year to year.
 
-    Uses the full two-stage Ritchie soil evaporation with DSR accumulation,
-    AMC-based SCS curve number runoff, and layer-by-layer PASW calculation.
-
-    Climate columns used:
-        rain      — daily rainfall (mm)
-        epan      — pan evaporation (mm)
     """
     layers = profile.layers
     sw     = init_sw(profile, init_fraction)

@@ -408,13 +408,16 @@ with r1c:
 # ── Info expander ─────────────────────────────────────────────────────────────
 with st.expander("ℹ️ About this analysis"):
     st.markdown("""
-**How's the season?** compares cumulative rainfall for the current season against
-every comparable year on record at the selected station.
+**How's the season?** compares cumulative rainfall for the current season against 
+other years on record. Results are presented as:
+- **Percentile** value indicates where this season sits relative to history.
+- The **dashed line** is the median or 50%ile – half year’s wetter, half year’s drier.
 
-- The **percentile** shows where the current season sits relative to history
-- The **dashed line** is the day-by-day median across all comparable years
-- Current year shown in **bold red**; all historical years in light blue
-- Records sourced from SILO (Bureau of Meteorology patched point data)
+**Applications**
+- Provides an objective assessment of this season in relation to longer term conditions.
+- Use to adjust expectations: fallow, in-crop rain and yield,fertiliser inputs. 
+
+A copy of the results can be downloaded as an image.
 """)
 
 # ── Auto-run whenever station and inputs are ready ────────────────────────────
