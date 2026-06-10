@@ -85,29 +85,6 @@ def load_profile(soil_path: Path):
 # ── Water balance ─────────────────────────────────────────────────────────────
 
 def run_water_balance(met_df: pd.DataFrame, profile, init_fraction: float = 0.5):
-    """
-  **How much rain stored?** estimates the effectiveness of fallow rain after accounting
-   for evaporation, runoff and drainage losses. 
-   Select a **soil type** that best describes your paddock. A list of 12 soil types are
-    available (shallow, average and deep phases of four texture groups). 
-    Results are presented as:
-•	  Plant available soil water **(mm)** and **% of PAWC** (how full is the bucket?)
-•	  **Fallow efficiency (%)**, a measure of how much rain was captured as plant 
-        available water (PAW).
-•	  A graph tracking soil water during the fallow, the average for this soil
-        (dotted line) and previous years (blue lines). 
- •	  An image of where water is stored in the soil.
- 
-**Applications**
-•	A robust estimate of each paddocks water status and an indication of how the
-      current season compared with other years.
-•	The amount of soil water at planting may influence crop choice and inputs levels.
-•	In some environments, soil water available at planting can be a major component
-    of a crops water use and critical towards flowering. Soil water provides an
-     important buffer for crop performance.
-•	A better appreciation of how fallows vary from year to year.
-
-    """
     layers = profile.layers
     sw     = init_sw(profile, init_fraction)
     sw0    = float(sw.sum())
@@ -434,13 +411,26 @@ with s3c:
 
 with st.expander("ℹ️ About this analysis"):
     st.markdown("""
-**How much rain stored?** runs the PERFECT/HowLeaky daily soil water balance
-model for a fallow period at the selected station.
-
-- **Plant available soil water** is the water stored between wilting point and field capacity
-- **Fallow efficiency** is the % of rainfall stored as soil water
-- The current fallow is compared against the same period in previous years
-- Records sourced from SILO (Bureau of Meteorology patched point data)
+**How much rain stored?** estimates the effectiveness of fallow rain after accounting
+   for evaporation, runoff and drainage losses. 
+   Select a **soil type** that best describes your paddock. A list of 12 soil types are
+    available (shallow, average and deep phases of four texture groups). 
+    Results are presented as:
+-  Plant available soil water **(mm)** and **% of PAWC** (how full is the bucket?)
+-  **Fallow efficiency (%)**, a measure of how much rain was captured as plant 
+        available water (PAW).
+-  A graph tracking soil water during the fallow, the average for this soil
+        (dotted line) and previous years (blue lines). 
+-  An image of where water is stored in the soil.
+ 
+**Applications**
+-  A robust estimate of each paddocks water status and an indication of how the
+      current season compared with other years.
+-  The amount of soil water at planting may influence crop choice and inputs levels.
+-  In some environments, soil water available at planting can be a major component
+    of a crops water use and critical towards flowering. Soil water provides an
+     important buffer for crop performance.
+-  A better appreciation of how fallows vary from year to year.
 """)
 
 # ── Auto-run whenever inputs are ready ────────────────────────────────────────
@@ -685,13 +675,11 @@ if st.session_state.get("hw_result"):
         st.markdown(f"""
 | Component | mm | % of rainfall |
 |---|---:|---:|
-| Rainfall | {rain_t:.1f} | 100.0 |
-| Runoff | {ro_t:.1f} | {ro_t/rain_t*100:.1f} |
-| Soil evaporation | {es_t:.1f} | {es_t/rain_t*100:.1f} |
-| Transpiration | {tr_t:.1f} | {tr_t/rain_t*100:.1f} |
-| Deep drainage | {dr_t:.1f} | {dr_t/rain_t*100:.1f} |
-| Change in soil water | {dsw:.1f} | {dsw/rain_t*100:.1f} |
-| **Balance check** | **{abs(err):.2f}** | *(should be ~0)* |
+| Rainfall | {rain_t:.0f} | 100 |
+| Runoff | {ro_t:.0f} | {ro_t/rain_t*100:.0f} |
+| Soil evaporation | {es_t:.0f} | {es_t/rain_t*100:.0f} |
+| Deep drainage | {dr_t:.0f} | {dr_t/rain_t*100:.0f} |
+| **Change in soil water** | {dsw:.0f} | {dsw/rain_t*100:.0f} |
         """)
         epan_mean = recent_df['epan'].mean() if 'epan' in recent_df.columns else 0.0
         epan_src  = "SILO pan evap" if recent_met["epan"].fillna(0).sum() > 10 else "estimated from radiation/temp"
