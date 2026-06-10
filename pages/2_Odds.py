@@ -150,12 +150,18 @@ with st.container(border=True):
             if len(labels) == 1:
                 st.session_state.station_chosen    = labels[0]
                 st.session_state.station_confirmed = True
+                st.session_state.stations          = [st.session_state.stations[0]]
                 st.rerun()
             else:
                 st.caption(f"**{len(labels)} stations found** — select one:")
                 def on_station_pick():
-                    st.session_state.station_chosen    = st.session_state.station_select
+                    chosen_now = st.session_state.station_select
+                    st.session_state.station_chosen    = chosen_now
                     st.session_state.station_confirmed = True
+                    matching = [s for s in st.session_state.get("stations", [])
+                                if s["label"] == chosen_now]
+                    if matching:
+                        st.session_state.stations = [matching[0]]
                 rc1, rc2 = st.columns([5, 1])
                 with rc1:
                     chosen = st.radio(
@@ -170,6 +176,7 @@ with st.container(border=True):
                     if st.button("Select", key="odds_select", width="stretch"):
                         st.session_state.station_chosen    = chosen
                         st.session_state.station_confirmed = True
+                        st.session_state.stations          = [next(s for s in st.session_state.stations if s["label"] == chosen)]
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
         elif st.session_state.last_search:
@@ -246,6 +253,7 @@ with r2g:
 # ── Info expander ─────────────────────────────────────────────────────────────
 with st.expander("ℹ️ About this analysis"):
     st.markdown("""
+
 **What are the odds?** assesses the probability of receiving a specified amount of 
 rainfall (mm) within a specified period (days), between two dates. 
 Results are presented as:

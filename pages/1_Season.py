@@ -338,12 +338,18 @@ with st.container(border=True):
                 if len(labels) == 1:
                     st.session_state["se_chosen"]    = labels[0]
                     st.session_state["se_confirmed"] = True
+                    st.session_state["se_stations"]  = [stations[0]]
                     st.rerun()
                 else:
                     st.caption(f"**{len(labels)} stations found** — select one:")
                     def on_station_pick():
-                        st.session_state["se_chosen"]    = st.session_state["se_radio"]
+                        chosen_now = st.session_state["se_radio"]
+                        st.session_state["se_chosen"]    = chosen_now
                         st.session_state["se_confirmed"] = True
+                        matching = [s for s in st.session_state.get("se_stations", [])
+                                    if s["label"] == chosen_now]
+                        if matching:
+                            st.session_state["se_stations"] = [matching[0]]
                     rc1, rc2 = st.columns([5, 1])
                     with rc1:
                         chosen = st.radio(
@@ -358,6 +364,7 @@ with st.container(border=True):
                         if st.button("Select", key="se_select", width="stretch"):
                             st.session_state["se_chosen"]    = chosen
                             st.session_state["se_confirmed"] = True
+                            st.session_state["se_stations"]  = [next(s for s in stations if s["label"] == chosen)]
                             st.rerun()
                         st.markdown('</div>', unsafe_allow_html=True)
             elif st.session_state.get("se_last_query"):
