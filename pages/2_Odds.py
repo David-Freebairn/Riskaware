@@ -13,6 +13,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch as _Patch
+import plotly.graph_objects as go
 from datetime import date
 
 from core.silo import search_stations, ensure_climate_cached, slice_climate
@@ -150,18 +152,12 @@ with st.container(border=True):
             if len(labels) == 1:
                 st.session_state.station_chosen    = labels[0]
                 st.session_state.station_confirmed = True
-                st.session_state.stations          = [st.session_state.stations[0]]
                 st.rerun()
             else:
                 st.caption(f"**{len(labels)} stations found** — select one:")
                 def on_station_pick():
-                    chosen_now = st.session_state.station_select
-                    st.session_state.station_chosen    = chosen_now
+                    st.session_state.station_chosen    = st.session_state.station_select
                     st.session_state.station_confirmed = True
-                    matching = [s for s in st.session_state.get("stations", [])
-                                if s["label"] == chosen_now]
-                    if matching:
-                        st.session_state.stations = [matching[0]]
                 rc1, rc2 = st.columns([5, 1])
                 with rc1:
                     chosen = st.radio(
@@ -176,7 +172,6 @@ with st.container(border=True):
                     if st.button("Select", key="odds_select", width="stretch"):
                         st.session_state.station_chosen    = chosen
                         st.session_state.station_confirmed = True
-                        st.session_state.stations          = [next(s for s in st.session_state.stations if s["label"] == chosen)]
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
         elif st.session_state.last_search:
@@ -259,6 +254,7 @@ rainfall (mm) within a specified period (days), between two dates.
 Results are presented as:
 - The probability of conditions met in the past (% of years).
 - A time series chart showing hits and misses.
+- Hover over the graph to see how often this occurs **Hint** reduce days to 1)
 
 **Applications**
 - Assess the chances of receiving rainfall for critical events such as: planting, 
@@ -326,8 +322,10 @@ if st.session_state.get("odds_result"):
             rolled = grp["rain"].rolling(window=int(win_days), min_periods=int(win_days)).sum()
             mx = rolled.max()
             if not np.isnan(mx):
+                occasions = int((rolled >= threshold).sum())
                 results.append({"season_year": sy, "max_roll_mm": mx,
-                                 "met_criteria": int(mx >= threshold)})
+                                 "met_criteria": int(mx >= threshold),
+                                 "occasions": occasions})
 
         if not results:
             st.warning("Not enough days to compute rolling window.")
@@ -364,45 +362,69 @@ if st.session_state.get("odds_result"):
 </div>
 """, unsafe_allow_html=True)
 
-        # ── Chart ──────────────────────────────────────────────────────────
+        # ── Interactive Plotly chart ────────────────────────────────────────
         NAVY = "#0b1f3a"; BLUE = "#2979c4"; BRIGHT = "#4da6ff"
         MISS = "#b8cfe8"; BG = "#f7fafd"; GRID = "#dde5ee"
 
-        fig, ax = plt.subplots(figsize=(14, 4.0))
-        fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
+        colours      = [BRIGHT if r >= threshold else MISS for r in annual_max["max_roll_mm"]]
+        edge_colours = [BLUE   if r >= threshold else MISS for r in annual_max["max_roll_mm"]]
 
-        colours = [BRIGHT if r >= threshold else MISS for r in annual_max["max_roll_mm"]]
-        bars = ax.bar(annual_max["season_year"], annual_max["max_roll_mm"],
-                      color=colours, width=0.72, zorder=3, linewidth=0, alpha=0.95)
-        for bar, r in zip(bars, annual_max["max_roll_mm"]):
-            if r >= threshold:
-                bar.set_edgecolor(BLUE); bar.set_linewidth(0.8)
+        hover_text = [
+            f"{int(row.season_year)},  {row.occasions} times"
+            for _, row in annual_max.iterrows()
+        ]
 
-        ax.axhline(threshold, color=NAVY, lw=1.8, ls="--", zorder=4)
-        x_right = annual_max["season_year"].max()
-        ax.annotate(f"{int(threshold)} mm",
-                    xy=(x_right, threshold), xytext=(6, 4),
-                    textcoords="offset points", fontsize=9.5, color=NAVY,
-                    fontweight="bold", va="bottom", ha="left",
-                    annotation_clip=False)
-
-        ax.set_xlabel("Season year", fontsize=10, color="#3a5a7a", labelpad=6)
-        ax.set_ylabel(f"Max {int(win_days)}-day rainfall  (mm)",
-                      fontsize=10, color="#3a5a7a", labelpad=6)
-        ax.tick_params(colors="#3a5a7a", labelsize=9)
-        if n > 30: ax.tick_params(axis="x", rotation=45)
-        ax.grid(True, axis="y", color=GRID, lw=0.9, zorder=0)
-        ax.set_axisbelow(True)
-        for sp in ["top", "right", "left"]: ax.spines[sp].set_visible(False)
-        ax.spines["bottom"].set_color(GRID)
-
-        from matplotlib.patches import Patch as _Patch
-        ax.legend(handles=[
-            _Patch(facecolor=BRIGHT, edgecolor=BLUE, linewidth=0.8,
-                   label=f"≥ {int(threshold)} mm  ({n_exceed} yrs)"),
-            _Patch(facecolor=MISS, label=f"< {int(threshold)} mm  ({n - n_exceed} yrs)"),
-        ], fontsize=9, loc="upper left", framealpha=0.95, edgecolor=GRID, fancybox=False)
-        fig.tight_layout(pad=1.1)
+        fig_plotly = go.Figure()
+        fig_plotly.add_trace(go.Bar(
+            x=annual_max["season_year"],
+            y=annual_max["max_roll_mm"],
+            marker_color=colours,
+            marker_line_color=edge_colours,
+            marker_line_width=0.8,
+            hovertext=hover_text,
+            hoverinfo="text",
+            hoverlabel=dict(bgcolor=NAVY, font_color="white", font_size=13,
+                            bordercolor=BLUE),
+            showlegend=False,
+        ))
+        fig_plotly.add_hline(
+            y=threshold, line_dash="dash", line_color=NAVY, line_width=1.8,
+            annotation_text=f"  {int(threshold)} mm",
+            annotation_position="right",
+            annotation_font=dict(color=NAVY, size=11, family="Arial"),
+        )
+        fig_plotly.add_trace(go.Bar(
+            x=[None], y=[None], marker_color=BRIGHT,
+            marker_line_color=BLUE, marker_line_width=0.8,
+            name=f"≥ {int(threshold)} mm  ({n_exceed} yrs)",
+        ))
+        fig_plotly.add_trace(go.Bar(
+            x=[None], y=[None], marker_color=MISS,
+            name=f"< {int(threshold)} mm  ({n - n_exceed} yrs)",
+        ))
+        fig_plotly.update_layout(
+            height=320,
+            plot_bgcolor=BG, paper_bgcolor=BG,
+            margin=dict(l=60, r=60, t=20, b=50),
+            xaxis=dict(
+                title="Season year", title_font=dict(size=10, color="#3a5a7a"),
+                tickfont=dict(size=9, color="#3a5a7a"),
+                tickangle=45 if n > 30 else 0,
+                gridcolor=GRID, showgrid=False, linecolor=GRID,
+            ),
+            yaxis=dict(
+                title=f"Max {int(win_days)}-day rainfall (mm)",
+                title_font=dict(size=10, color="#3a5a7a"),
+                tickfont=dict(size=9, color="#3a5a7a"),
+                gridcolor=GRID, showgrid=True, zeroline=False,
+            ),
+            legend=dict(
+                orientation="h", x=0, y=1.02, xanchor="left", yanchor="bottom",
+                font=dict(size=10), bgcolor="rgba(0,0,0,0)",
+            ),
+            bargap=0.28,
+        )
+        st.plotly_chart(fig_plotly, width="stretch", key="odds_chart")
 
         # ── Save JPEG before closing fig ───────────────────────────────────
         import io as _io
@@ -493,10 +515,6 @@ if st.session_state.get("odds_result"):
                          bbox_inches="tight", facecolor="white")
         jpeg_buf.seek(0)
         plt.close(comp_fig)
-
-        # ── Display chart on screen ────────────────────────────────────────
-        st.pyplot(fig)
-        plt.close(fig)
 
         col_l, col_c, col_r = st.columns([1, 2, 1])
         with col_c:
