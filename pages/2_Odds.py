@@ -254,7 +254,6 @@ rainfall (mm) within a specified period (days), between two dates.
 Results are presented as:
 - The probability of conditions met in the past (% of years).
 - A time series chart showing hits and misses.
-- Hover over the graph to see how often this occurs **Hint** reduce days to 1)
 
 **Applications**
 - Assess the chances of receiving rainfall for critical events such as: planting, 
