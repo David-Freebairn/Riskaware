@@ -90,24 +90,45 @@ the trap of recent history bias.
      annual rainfall. How variable is weather? 
      
 **Acknowledgements**
+**Weather data:** Queensland Government's SILO database sourced from the Bureau 
+of Meteorology and the many voluntary weather recorders across the 
+Australian continent since the 1890’s
+**Soil water estimates:** Applies a well-tested daily water balance model - also 
+used in models such as PERFECT (1989), Howwet? (1994) and ApSim (1996)·
+**Interface:** Standard graphical presentations also used in Howwet? (1994) and 
+Australian CliMate (2025); New York 1982, sourced from Edward Tufte (1983)
+**Development software** Anthropic. (2026). Claude (Sonnet 4.6) 
+[Large language model]. https://claude.ai
+**Support team**  Ken Brooke for encouragement, quality control and pushing me and Claude.
 
-**Weather data:** Queensland Government's SILO database sourced from the Bureau of Meteorology
- and the many voluntary weather recorders across the Australian continent since the 1890’s
+**References**
+- Freebairn, D.M., Hamilton, A.H., Cox, P.G. and Holzworth, D. (1994). HOWWET? Estimating
+   the storage of water in your soil using rainfall records: A computer program. 
+   Agricultural Production Systems Research Unit, QDPI–CSIRO, Toowoomba, 
+ - Freebairn, D.M. and McClymont, D. (2025). Australian CliMate – a decision support tool
+    for agricultural decision makers. Climate, preprint 3755700.
+    https://doi.org/10.20944/preprints202507.1081.v1  Queensland, Australia. 
+- Littleboy, M., Silburn, D.M., Freebairn, D.M., Woodruff, D.R. and Hammer, G.L. (1989). 
+    PERFECT: A simulation model of Productivity Erosion Runoff Functions to Evaluate 
+    Conservation Techniques. QDPI Bulletin QB89005. Queensland Department of Primary 
+    Industries, Brisbane, Australia. 
+- McCown, R.L., Hammer, G.L., Hargreaves, J.N.G., Holzworth, D. and Freebairn, D.M. (1996).
+    APSIM: A novel software system for model development, model testing, and simulation
+    in agricultural systems research. Agricultural Systems, 50, 255–271. 
+- New York Times (1982). New York City's weather for 1980. The New York Times, 
+    11 January 1982, p. 32. Cited in Tufte, E.R. (1983). The Visual Display of 
+    Quantitative Information. Cheshire, CT: Graphics Press.
+- Jeffrey, S.J.; Carter, J.O.; Moodie, K.B.; Beswick, A.R. Using spatial interpolation
+    to construct a comprehensive archive of Aus-tralian climate data. Environ. Model. 
+    Softw. 2001, 16, 309–330. https://doi.org/10.1016/S1364-8152(01)00008-1.
+- Queensland Government. SILO (Scientific Information for Land Owners). Available online:
+    https://www.longpaddock.qld.gov.au/silo/about/ (accessed on 12 June 2025).
 
-**Soil water estimate:** Applies a well-tested water balance model used in models
-such as PERFECT (1989), Howwet? (1994) and ApSim (1994)
-
-**Interface:**
- Standard graphical presentations also used in Howwet? (Dimes et al 1996)
-" and Australian CliMate (Freebairn and McClymont 2025). 
-Snapshot graphic is based on an image “NEW YORK CITY'S WEATHER FOR 1980” from the 
-New York Times  January 11th 1982, page 32, sourced from Edward Tufte (1983)
-The Visual Display of Quantitative Information.
 
 **Disclosure**
 
 These analyses have been developed based on previous experience in designing
-climate focused decision support tools. I have used Anthropic’s Claude AI software
+climate focused decision support tools since 1994. We have used Anthropic’s Claude AI software
 This software does not have the same polish as previous DSSs and was built
 to demonstrate new software and App development capabilities.
 
