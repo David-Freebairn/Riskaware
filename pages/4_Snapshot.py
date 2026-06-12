@@ -248,9 +248,9 @@ fig1.update_layout(height=500, margin=dict(l=50, r=20, t=50, b=80),
     plot_bgcolor="white", paper_bgcolor="white", hovermode="x unified", bargap=0.15)
 for ann in fig1.layout.annotations:
     ann.update(font=TITLE_FONT, x=0.5, xanchor="center")
-fig1.update_xaxes(showgrid=False, tickformat="%b", tickfont=AXIS_FONT, row=1, col=1)
-fig1.update_xaxes(showgrid=False, tickfont=AXIS_FONT, row=2, col=1)
-fig1.update_yaxes(gridcolor=GRID_COLOR, tickfont=AXIS_FONT)
+fig1.update_xaxes(showgrid=False, tickformat="%b", tickfont=AXIS_FONT, fixedrange=True, row=1, col=1)
+fig1.update_xaxes(showgrid=False, tickfont=AXIS_FONT, fixedrange=True, row=2, col=1)
+fig1.update_yaxes(gridcolor=GRID_COLOR, tickfont=AXIS_FONT, fixedrange=True)
 fig1.update_yaxes(title_text="°C", row=1, col=1, title_font=AXIS_FONT)
 fig1.update_yaxes(title_text="mm", row=2, col=1, title_font=AXIS_FONT, rangemode="tozero")
 st.plotly_chart(fig1, width="stretch", key="snap_fig1")
@@ -273,9 +273,9 @@ fig2.update_layout(
     legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.2, font=AXIS_FONT),
     plot_bgcolor="white", paper_bgcolor="white",
     hovermode="x unified", bargap=0.1)
-fig2.update_xaxes(showgrid=False, dtick=10, tickfont=AXIS_FONT)
+fig2.update_xaxes(showgrid=False, dtick=10, tickfont=AXIS_FONT, fixedrange=True)
 fig2.update_yaxes(gridcolor=GRID_COLOR, title_text="mm",
-                  title_font=AXIS_FONT, tickfont=AXIS_FONT, rangemode="tozero")
+                  title_font=AXIS_FONT, tickfont=AXIS_FONT, rangemode="tozero", fixedrange=True)
 st.plotly_chart(fig2, width="stretch", key="snap_fig2")
 
 # ── Export ────────────────────────────────────────────────────────────────────

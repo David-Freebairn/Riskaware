@@ -369,7 +369,7 @@ if st.session_state.get("odds_result"):
         edge_colours = [BLUE   if r >= threshold else MISS for r in annual_max["max_roll_mm"]]
 
         hover_text = [
-            f"{int(row.season_year)},  {row.occasions} times"
+            f"{int(row.season_year)},  {int(row.occasions)} times"
             for _, row in annual_max.iterrows()
         ]
 
@@ -410,12 +410,14 @@ if st.session_state.get("odds_result"):
                 tickfont=dict(size=9, color="#3a5a7a"),
                 tickangle=45 if n > 30 else 0,
                 gridcolor=GRID, showgrid=False, linecolor=GRID,
+                fixedrange=True,
             ),
             yaxis=dict(
                 title=f"Max {int(win_days)}-day rainfall (mm)",
                 title_font=dict(size=10, color="#3a5a7a"),
                 tickfont=dict(size=9, color="#3a5a7a"),
                 gridcolor=GRID, showgrid=True, zeroline=False,
+                fixedrange=True,
             ),
             legend=dict(
                 orientation="h", x=0, y=1.02, xanchor="left", yanchor="bottom",

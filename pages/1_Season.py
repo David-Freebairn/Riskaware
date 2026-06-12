@@ -24,6 +24,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
+import plotly.graph_objects as go
 import io
 from datetime import date, timedelta
 from calendar import monthrange
@@ -513,9 +514,83 @@ if st.session_state.get("se_result"):
                      int(months_back), int(start_year))
 
     ax = fig.axes[0]
-    ax.set_title("")  # clear title set in make_chart
+    ax.set_title("")  # keep matplotlib fig clean for JPEG
 
-    st.pyplot(fig, width='stretch')
+    # ── Interactive Plotly chart ──────────────────────────────────────────
+    C_HIST    = "#7ab4d8"
+    C_MEDIAN  = "#1a4a6e"
+    C_CURRENT = "#cc2200"
+    C_GRID    = "#e0e8f0"
+    C_BG      = "#ffffff"
+
+    current    = series[current_year]
+    fig_plotly = go.Figure()
+
+    # Historical years — year shown on hover
+    for ey, s in series.items():
+        if ey == current_year:
+            continue
+        n = min(len(s), len(current))
+        fig_plotly.add_trace(go.Scatter(
+            x=current.index[:n], y=s.values[:n],
+            mode="lines",
+            line=dict(color=C_HIST, width=0.9),
+            opacity=0.45,
+            name=str(ey),
+            hovertemplate=f"{ey}<extra></extra>",
+            legendgroup="history",
+            showlegend=False,
+        ))
+
+    # Median
+    if median_ser is not None:
+        fig_plotly.add_trace(go.Scatter(
+            x=median_ser.index, y=median_ser.values,
+            mode="lines",
+            line=dict(color=C_MEDIAN, width=2, dash="dash"),
+            name="Median",
+            hovertemplate="Median<extra></extra>",
+        ))
+
+    # Current year
+    fig_plotly.add_trace(go.Scatter(
+        x=current.index, y=current.values,
+        mode="lines",
+        line=dict(color=C_CURRENT, width=2.5),
+        name=f"{current_year} (current)",
+        hovertemplate=f"{current_year}<extra></extra>",
+    ))
+
+    # Today vertical line
+    fig_plotly.add_vline(
+        x=current.index[-1].timestamp() * 1000,
+        line_dash="dot", line_color="#888", line_width=1,
+    )
+
+    fig_plotly.update_layout(
+        height=360,
+        plot_bgcolor=C_BG, paper_bgcolor=C_BG,
+        margin=dict(l=60, r=20, t=30, b=50),
+        hovermode="closest",
+        legend=dict(
+            orientation="h", x=0, y=1.02, xanchor="left", yanchor="bottom",
+            font=dict(size=10), bgcolor="rgba(0,0,0,0)",
+        ),
+        xaxis=dict(
+            tickfont=dict(size=9, color="#555"),
+            gridcolor=C_GRID, showgrid=False,
+            fixedrange=True,
+        ),
+        yaxis=dict(
+            title="Cumulative rainfall (mm)",
+            title_font=dict(size=10, color="#555"),
+            tickfont=dict(size=9, color="#555"),
+            gridcolor=C_GRID, showgrid=True,
+            rangemode="tozero", fixedrange=True,
+        ),
+    )
+
+    st.plotly_chart(fig_plotly, width="stretch", key="season_chart")
 
     # ── Composite JPEG download (header panel + chart) ─────────────────────
     import matplotlib.gridspec as _gs

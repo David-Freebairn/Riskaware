@@ -250,7 +250,7 @@ def soil_profile_svg(profile, final_pasw, sw_layers=None) -> str:
 # ── UI ────────────────────────────────────────────────────────────────────────
 
 st.title("💧 How much rain stored?")
-st.caption("*Accumulated soil water over a fallow*")
+st.caption("*Accumulated **plant available** soil water over a fallow*")
 
 # ── Pre-populate search from shared station ───────────────────────────────────
 _shared = load_station()
@@ -419,7 +419,7 @@ with s3c:
 with st.expander("ℹ️ About this analysis"):
     st.markdown("""
 **How much rain stored?** estimates the effectiveness of fallow rain after accounting
-   for evaporation, runoff and drainage losses. 
+   for evaporation, runoff and drainage losses on a daily basis. 
    Select a **soil type** that best describes your paddock. A list of 12 soil types are
     available (shallow, average and deep phases of four texture groups). 
     Results are presented as:
@@ -428,7 +428,7 @@ with st.expander("ℹ️ About this analysis"):
         available water (PAW).
 -  A graph tracking soil water during the fallow, the average for this soil
         (dotted line) and previous years (blue lines). 
--  An image of where water is stored in the soil.
+-  An image showing where water is stored throughout the soil profile.
  
 **Applications**
 -  A robust estimate of each paddocks water status and an indication of how the
@@ -542,7 +542,7 @@ if st.session_state.get("hw_result"):
     st.markdown(f"""
 <div style="background:#f0f6ff; border-radius:10px; padding:18px 22px 14px 22px; margin-bottom:4px;">
   <div style="font-size:1.45rem; font-weight:700; color:#1a3a5c; margin-bottom:2px;">
-    Soil water monitor
+    Soil water estimation
   </div>
   <div style="font-size:0.95rem; color:#444; margin-bottom:10px;">
     <b>{stn_name}</b>&nbsp;&nbsp;
@@ -585,7 +585,7 @@ if st.session_state.get("hw_result"):
     hax.set_facecolor("#f0f6ff")
     hax.set_xlim(0, 1); hax.set_ylim(0, 1)
     hax.axis("off")
-    hax.text(0.012, 0.95, "Soil water monitor",
+    hax.text(0.012, 0.95, "Soil water tracker",
              ha="left", va="top", fontsize=14, fontweight="bold", color="#1a3a5c",
              transform=hax.transAxes)
     hax.text(0.012, 0.68,
