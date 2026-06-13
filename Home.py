@@ -72,7 +72,8 @@ and **Future expectations**.
 Current conditions are what we sense around us. Some things are obvious, some less so
 e.g. how much available water and nutrient in soils. 
 Future expectations are based on our experience, with a natural bias toward recent 
-experiences. An example “decision” might be to plant a crop now, or delay with the
+experiences. 
+An example “decision” might be to plant a crop now, or delay with the
 expectation of a better start later. This decision is a mix of current and future events.
 RiskAware’s four analyses provide insight into both current conditions (soil water) 
 and future events (rainfall) based recent and long-term weather records.
@@ -99,12 +100,13 @@ the trap of recent history bias.
   used in models such as PERFECT (1989), Howwet? (1994) and ApSim (1996)·
 
 **Interface:** Standard graphical presentations also used in Howwet? (1994) and 
-  Australian CliMate (2025); New York 1982, sourced from Edward Tufte (1983)
+  Australian CliMate (2025); New York Times (1982), sourced from Tufte (1983).
 
 **Development software** Anthropic. (2026). Claude (Sonnet 4.6) [Large language model].
    https://claude.ai
 **Support team:** 
   Ken Brooke for encouragement, quality control and pushing me and Claude.
+
 
 **Disclosure**
 These analyses have been developed based on previous experience in designing
