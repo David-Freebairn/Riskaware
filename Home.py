@@ -90,16 +90,29 @@ the trap of recent history bias.
      annual rainfall. How variable is weather? 
      
 **Acknowledgements**
+
 **Weather data:** Queensland Government's SILO database sourced from the Bureau 
-of Meteorology and the many voluntary weather recorders across the 
-Australian continent since the 1890’s
+  of Meteorology and the many voluntary weather recorders across the Australian 
+  continent since the 1890’s
+
 **Soil water estimates:** Applies a well-tested daily water balance model - also 
-used in models such as PERFECT (1989), Howwet? (1994) and ApSim (1996)·
+  used in models such as PERFECT (1989), Howwet? (1994) and ApSim (1996)·
+
 **Interface:** Standard graphical presentations also used in Howwet? (1994) and 
-Australian CliMate (2025); New York 1982, sourced from Edward Tufte (1983)
-**Development software** Anthropic. (2026). Claude (Sonnet 4.6) 
-[Large language model]. https://claude.ai
-**Support team**  Ken Brooke for encouragement, quality control and pushing me and Claude.
+  Australian CliMate (2025); New York 1982, sourced from Edward Tufte (1983)
+
+**Development software** Anthropic. (2026). Claude (Sonnet 4.6) [Large language model].
+   https://claude.ai
+**Support team:** 
+  Ken Brooke for encouragement, quality control and pushing me and Claude.
+
+**Disclosure**
+These analyses have been developed based on previous experience in designing
+climate focused decision support tools since 1994. We have used Anthropic’s Claude AI software
+This software does not have the same polish as previous DSSs and was built
+to demonstrate new software and App development capabilities.
+
+**Comments welcomed** David Freebairn em: david.freebairn@gmail.com 
 
 **References**
 - Freebairn, D.M., Hamilton, A.H., Cox, P.G. and Holzworth, D. (1994). HOWWET? Estimating
@@ -123,16 +136,6 @@ Australian CliMate (2025); New York 1982, sourced from Edward Tufte (1983)
     Softw. 2001, 16, 309–330. https://doi.org/10.1016/S1364-8152(01)00008-1.
 - Queensland Government. SILO (Scientific Information for Land Owners). Available online:
     https://www.longpaddock.qld.gov.au/silo/about/ (accessed on 12 June 2025).
-
-
-**Disclosure**
-
-These analyses have been developed based on previous experience in designing
-climate focused decision support tools since 1994. We have used Anthropic’s Claude AI software
-This software does not have the same polish as previous DSSs and was built
-to demonstrate new software and App development capabilities.
-
-**Comments welcomed** David Freebairn em: david.freebairn@gmail.com 
 
 """)
 
