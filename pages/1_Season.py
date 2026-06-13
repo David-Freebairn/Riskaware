@@ -420,12 +420,13 @@ with st.expander("ℹ️ About this analysis"):
 other years on record. Results are presented as:
 - **Percentile** value indicates where this season sits relative to history.
 - The **dashed line** is the median or 50%ile – half year’s wetter, half year’s drier.
+- All years shown as light blue lines.
 
 **Applications**
 - Provides an objective assessment of this season in relation to longer term conditions.
 - Use to adjust expectations: fallow, in-crop rain and yield,fertiliser inputs. 
 
-A copy of the results can be downloaded as an image.
+Results can be downloaded as an image below.
 """)
 
 # ── Auto-run whenever station and inputs are ready ────────────────────────────
