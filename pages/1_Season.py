@@ -418,13 +418,13 @@ with st.expander("ℹ️ About this analysis"):
     st.markdown("""
 **How's the season?** compares cumulative rainfall for the current season against 
 other years on record. Results are presented as:
-- **Percentile** value indicates where this season sits relative to history.
+- **A Percentile** value indicates where this season sits relative to history.
 - The **dashed line** is the median or 50%ile – half year’s wetter, half year’s drier.
-- All years shown as light blue lines.
+- All years shown as light blue lines. Hover over a line will show year.
 
 **Applications**
-- Provides an objective assessment of this season in relation to longer term conditions.
-- Use to adjust expectations: fallow, in-crop rain and yield,fertiliser inputs. 
+- An objective assessment of how this season is tracking.
+- Adjust expectations and inputs. 
 
 Results can be downloaded as an image below.
 """)
