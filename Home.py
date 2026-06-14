@@ -69,17 +69,19 @@ with st.expander("ℹ️ About RiskAware"):
     st.markdown("""
 Agricultural decisions are generally based on our understanding of **Current conditions**
 and **Future expectations**.
-Current conditions are what we sense around us. Some things are obvious, some less so
+
+**Current conditions** are what we sense around us. Some things are obvious, some less so
 e.g. how much available water and nutrient in soils. 
-Future expectations are based on our experience, with a natural bias toward recent 
+**Future expectations** are based on our experience, with a natural bias toward recent 
 experiences. 
-An example “decision” might be to plant a crop now, or delay with the
-expectation of a better start later. This decision is a mix of current and future events.
-RiskAware’s four analyses provide insight into both current conditions (soil water) 
+An example “decision” might be to plant a crop now, or delay with the expectation of
+ a better start later. This decision is a mix of current and future events.
+
+**RiskAware’s** four analyses provide insight into both current conditions (soil water) 
 and future events (rainfall) based recent and long-term weather records.
-Our weather history is a rich source of “book maker odds” or probabilities of future
-rainfall using what we call climatology. Application of long-term records save us from
-the trap of recent history bias.
+Weather history is a rich source of probabilities of future rainfall using what
+ we call climatology. These long-term records save us from the trap of recent history bias.
+ The four analyses available are:
 
 - **How’s the season** simply gives us an objective assessment of the chances of rain
      since a specified date. Is it well above, below or near average? 
@@ -96,17 +98,16 @@ the trap of recent history bias.
   of Meteorology and the many voluntary weather recorders across the Australian 
   continent since the 1890’s
 
-**Soil water estimates:** Applies a well-tested daily water balance model - also 
-  used in models such as PERFECT (1989), Howwet? (1994) and ApSim (1996)·
+**Soil water estimates:** Applies a well-tested daily water balance model used in
+ models such as PERFECT (1989), Howwet? (1994) and ApSim (1996)·
 
 **Interface:** Standard graphical presentations also used in Howwet? (1994) and 
   Australian CliMate (2025); New York Times (1982), sourced from Tufte (1983).
 
-**Development software** Anthropic. (2026). Claude (Sonnet 4.6) [Large language model].
+**Development software:** Anthropic. (2026). Claude (Sonnet 4.6) [Large language model].
    https://claude.ai
-**Support team:** 
-  Ken Brooke for encouragement, quality control and pushing me and Claude.
 
+**Support team:**  Ken Brooke for encouragement, quality control and pushing me and Claude.
 
 **Disclosure**
 These analyses have been developed based on previous experience in designing
