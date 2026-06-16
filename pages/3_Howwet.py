@@ -26,6 +26,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.dates as mdates
+import plotly.graph_objects as go
+import matplotlib.dates as mdates
 import io
 from datetime import date, timedelta
 
@@ -428,6 +430,7 @@ with st.expander("ℹ️ About this analysis"):
         available water (PAW).
 -  A graph tracking soil water during the fallow, the average for this soil
         (dotted line) and previous years (blue lines). 
+-  Hover mouse over graph for more detail.
 -  An image showing where water is stored throughout the soil profile.
  
 **Applications**
@@ -550,13 +553,13 @@ if st.session_state.get("hw_result"):
     <span style="color:#888;">{start_label} to {end_label}</span>
   </div>
   <div style="display:flex; align-items:baseline; gap:0; flex-wrap:wrap;">
-    <span style="font-size:1.02rem; color:#444; font-weight:500;">Plant available soil water&nbsp;</span>
+    <span style="font-size:1.02rem; color:#444; font-weight:800;">Plant available soil water&nbsp;</span>
     <span style="font-size:1.5rem; color:#1a3a5c; font-weight:800;">{final_pasw:.0f} mm</span>
-    <span style="font-size:1.02rem; color:#2979c4; font-weight:700;">&nbsp;({pawc_pct:.0f}% of PAWC)</span>
+    <span style="font-size:1.02rem; color:#2979c4; font-weight:800;">&nbsp;({pawc_pct:.0f}% of PAWC)</span>
     <span style="flex:1; min-width:20px;"></span>
-    <span style="font-size:1.02rem; color:#888; font-weight:400;">Fallow efficiency&nbsp;</span>
-    <span style="font-size:1.02rem; color:#e06b00; font-weight:700;">{fe:.0f}%</span>
-    <span style="font-size:1.02rem; color:#888; font-weight:400;">&nbsp;from {cum_rain:.0f} mm rainfall</span>
+    <span style="font-size:1.02rem; color:#888; font-weight:600;">Fallow efficiency&nbsp;</span>
+    <span style="font-size:1.02rem; color:#e06b00; font-weight:800;">{fe:.0f}%</span>
+    <span style="font-size:1.02rem; color:#888; font-weight:600;">&nbsp;from {cum_rain:.0f} mm rainfall</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -566,7 +569,86 @@ if st.session_state.get("hw_result"):
         st.markdown(profile_svg, unsafe_allow_html=True)
     with col_chart:
         fig = make_pasw_chart(recent_df, hist_dfs, profile, stn_name, start_date, end_date)
-        st.pyplot(fig, width='stretch')
+
+        # ── Interactive Plotly chart ──────────────────────────────────────
+        pawc     = profile.pawc_total
+        n_recent = len(recent_df)
+        x_vals   = recent_df.index
+
+        fig_plotly = go.Figure()
+
+        # Historical years
+        hist_aligned = []
+        for hdf in hist_dfs:
+            seg = hdf["pasw"].values[:n_recent]
+            if not len(seg):
+                continue
+            n = min(len(seg), n_recent)
+            hist_aligned.append(seg[:n])
+            fig_plotly.add_trace(go.Scatter(
+                x=x_vals[:n], y=seg[:n],
+                mode="lines",
+                line=dict(color=C_HIST, width=0.8),
+                opacity=0.55,
+                hovertemplate="%{x|%d/%m/%y}  %{y:.0f} mm<extra></extra>",
+                legendgroup="history",
+                showlegend=False,
+            ))
+
+        # Historical mean
+        if hist_aligned:
+            min_len   = min(len(s) for s in hist_aligned)
+            mean_pasw = np.mean([s[:min_len] for s in hist_aligned], axis=0)
+            fig_plotly.add_trace(go.Scatter(
+                x=x_vals[:min_len], y=mean_pasw,
+                mode="lines",
+                line=dict(color=C_MEAN, width=2, dash="dash"),
+                name=f"Historical mean ({len(hist_aligned)} yrs)",
+                hovertemplate="%{x|%d/%m/%y}  %{y:.0f} mm<extra></extra>",
+            ))
+
+        # Recent fallow
+        fig_plotly.add_trace(go.Scatter(
+            x=recent_df.index, y=recent_df["pasw"],
+            mode="lines",
+            line=dict(color=C_RECENT, width=2.8),
+            name=f"Recent  ({start_date.strftime('%d %b %Y')} – {end_date.strftime('%d %b %Y')})",
+            hovertemplate="%{x|%d/%m/%y}  %{y:.0f} mm<extra></extra>",
+        ))
+
+        # PAWC line
+        fig_plotly.add_hline(
+            y=pawc, line_dash="dash", line_color="#CC4422",
+            line_width=0.9, opacity=0.6,
+            annotation_text=f"  PAWC {pawc:.0f} mm",
+            annotation_position="right",
+            annotation_font=dict(color="#CC4422", size=10),
+        )
+
+        fig_plotly.update_layout(
+            height=360,
+            plot_bgcolor="#FAFBFC", paper_bgcolor="#FAFBFC",
+            margin=dict(l=60, r=20, t=20, b=50),
+            hovermode="closest",
+            legend=dict(
+                orientation="h", x=0, y=1.02, xanchor="left", yanchor="bottom",
+                font=dict(size=10), bgcolor="rgba(0,0,0,0)",
+            ),
+            xaxis=dict(
+                tickfont=dict(size=9, color="#333"),
+                gridcolor="#E0E4EC", showgrid=False,
+                fixedrange=True,
+            ),
+            yaxis=dict(
+                title="Plant available soil water (mm)",
+                title_font=dict(size=10, color="#333"),
+                tickfont=dict(size=9, color="#333"),
+                gridcolor="#E0E4EC", showgrid=True,
+                rangemode="tozero", fixedrange=True,
+            ),
+        )
+
+        st.plotly_chart(fig_plotly, width="stretch", key="hw_chart")
 
     # ── Composite JPEG (header + chart) ───────────────────────────────────────
     import matplotlib.gridspec as _gs
