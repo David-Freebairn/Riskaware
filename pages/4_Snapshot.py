@@ -27,12 +27,28 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from core.silo   import ensure_climate_cached, search_stations
+from core.silo   import ensure_climate_cached, search_stations, SiloUnavailableError, load_sample_data
 from core.styles import apply_styles, save_station, load_station
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Snapshot · RiskAware", layout="wide")
 apply_styles()
+
+def _handle_silo_down(exc):
+    """Show SILO-down warning and offer sample data fallback."""
+    st.warning(
+        f"⚠️ SILO is currently unavailable ({exc}). "
+        "You can use the bundled Dalby Post Office sample dataset to explore the app."
+    )
+    if st.button("📂  Use Dalby sample data", key="use_sample"):
+        try:
+            df, station_info = load_sample_data(session_state=st.session_state)
+            st.session_state["_silo_fallback"] = True
+            st.session_state["_fallback_station"] = station_info
+            st.rerun()
+        except FileNotFoundError as e:
+            st.error(str(e))
+    st.stop()
 
 st.markdown("## 📸 Snapshot")
 st.caption("A review of one year's weather and long-term rainfall")
@@ -165,7 +181,13 @@ lon  = station["lon"]
 
 today = date.today()
 with st.spinner(f"Loading climate data for {station['name']}… (first load may take 30–60 seconds)"):
-    ensure_climate_cached(sid, lat=lat, lon=lon, session_state=st.session_state)
+    try:
+        ensure_climate_cached(sid, lat=lat, lon=lon, session_state=st.session_state)
+    except SiloUnavailableError as e:
+        _handle_silo_down(e)
+    except Exception as e:
+        st.error(f"Data fetch failed: {e}")
+        st.stop()
 
 df = st.session_state["climate_df"].copy()
 
@@ -248,9 +270,9 @@ fig1.update_layout(height=500, margin=dict(l=50, r=20, t=50, b=80),
     plot_bgcolor="white", paper_bgcolor="white", hovermode="x unified", bargap=0.15)
 for ann in fig1.layout.annotations:
     ann.update(font=TITLE_FONT, x=0.5, xanchor="center")
-fig1.update_xaxes(showgrid=False, tickformat="%b", tickfont=AXIS_FONT, fixedrange=True, row=1, col=1)
-fig1.update_xaxes(showgrid=False, tickfont=AXIS_FONT, fixedrange=True, row=2, col=1)
-fig1.update_yaxes(gridcolor=GRID_COLOR, tickfont=AXIS_FONT, fixedrange=True)
+fig1.update_xaxes(showgrid=False, tickformat="%b", tickfont=AXIS_FONT, row=1, col=1)
+fig1.update_xaxes(showgrid=False, tickfont=AXIS_FONT, row=2, col=1)
+fig1.update_yaxes(gridcolor=GRID_COLOR, tickfont=AXIS_FONT)
 fig1.update_yaxes(title_text="°C", row=1, col=1, title_font=AXIS_FONT)
 fig1.update_yaxes(title_text="mm", row=2, col=1, title_font=AXIS_FONT, rangemode="tozero")
 st.plotly_chart(fig1, width="stretch", key="snap_fig1")
@@ -273,9 +295,9 @@ fig2.update_layout(
     legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.2, font=AXIS_FONT),
     plot_bgcolor="white", paper_bgcolor="white",
     hovermode="x unified", bargap=0.1)
-fig2.update_xaxes(showgrid=False, dtick=10, tickfont=AXIS_FONT, fixedrange=True)
+fig2.update_xaxes(showgrid=False, dtick=10, tickfont=AXIS_FONT)
 fig2.update_yaxes(gridcolor=GRID_COLOR, title_text="mm",
-                  title_font=AXIS_FONT, tickfont=AXIS_FONT, rangemode="tozero", fixedrange=True)
+                  title_font=AXIS_FONT, tickfont=AXIS_FONT, rangemode="tozero")
 st.plotly_chart(fig2, width="stretch", key="snap_fig2")
 
 # ── Export ────────────────────────────────────────────────────────────────────

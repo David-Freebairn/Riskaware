@@ -24,12 +24,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
-import plotly.graph_objects as go
 import io
 from datetime import date, timedelta
 from calendar import monthrange
 
-from core.silo import search_stations, ensure_climate_cached, slice_climate
+from core.silo import search_stations, ensure_climate_cached, slice_climate, SiloUnavailableError, load_sample_data
 from core.styles import apply_styles, save_station, load_station
 
 # ── Page config ───────────────────────────────────────────────────────────────
@@ -43,6 +42,24 @@ MONTHS = ["Jan","Feb","Mar","Apr","May","Jun",
           "Jul","Aug","Sep","Oct","Nov","Dec"]
 
 apply_styles()
+
+def _handle_silo_down(exc):
+    """Show SILO-down warning and offer sample data fallback."""
+    st.warning(
+        f"⚠️ SILO is currently unavailable ({exc}). "
+        "You can use the bundled Dalby Post Office sample dataset to explore the app."
+    )
+    if st.button("📂  Use Dalby sample data", key="use_sample"):
+        try:
+            df, station_info = load_sample_data(session_state=st.session_state)
+            st.session_state["_silo_fallback"] = True
+            st.session_state["_fallback_station"] = station_info
+            st.rerun()
+        except FileNotFoundError as e:
+            st.error(str(e))
+    st.stop()
+
+
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -418,15 +435,14 @@ with st.expander("ℹ️ About this analysis"):
     st.markdown("""
 **How's the season?** compares cumulative rainfall for the current season against 
 other years on record. Results are presented as:
-- **A Percentile** value indicates where this season sits relative to history.
+- **Percentile** value indicates where this season sits relative to history.
 - The **dashed line** is the median or 50%ile – half year’s wetter, half year’s drier.
-- All years shown as light blue lines. Hover over a line will show year.
 
 **Applications**
-- An objective assessment of how this season is tracking.
-- Adjust expectations and inputs. 
+- Provides an objective assessment of this season in relation to longer term conditions.
+- Use to adjust expectations: fallow, in-crop rain and yield,fertiliser inputs. 
 
-Results can be downloaded as an image below.
+A copy of the results can be downloaded as an image.
 """)
 
 # ── Auto-run whenever station and inputs are ready ────────────────────────────
@@ -448,6 +464,8 @@ if station_info and (_input_key != st.session_state.get("se_input_key") or not _
             df = slice_climate(full_df, start=f"{int(_start_year)}0101")[
                 ["rain", "year", "month", "day", "doy"]
             ]
+        except SiloUnavailableError as e:
+            _handle_silo_down(e)
         except Exception as e:
             st.error(f"Data fetch failed: {e}")
             st.stop()
@@ -515,83 +533,9 @@ if st.session_state.get("se_result"):
                      int(months_back), int(start_year))
 
     ax = fig.axes[0]
-    ax.set_title("")  # keep matplotlib fig clean for JPEG
+    ax.set_title("")  # clear title set in make_chart
 
-    # ── Interactive Plotly chart ──────────────────────────────────────────
-    C_HIST    = "#7ab4d8"
-    C_MEDIAN  = "#1a4a6e"
-    C_CURRENT = "#cc2200"
-    C_GRID    = "#e0e8f0"
-    C_BG      = "#ffffff"
-
-    current    = series[current_year]
-    fig_plotly = go.Figure()
-
-    # Historical years — year shown on hover
-    for ey, s in series.items():
-        if ey == current_year:
-            continue
-        n = min(len(s), len(current))
-        fig_plotly.add_trace(go.Scatter(
-            x=current.index[:n], y=s.values[:n],
-            mode="lines",
-            line=dict(color=C_HIST, width=0.9),
-            opacity=0.45,
-            name=str(ey),
-            hovertemplate=f"{ey}<extra></extra>",
-            legendgroup="history",
-            showlegend=False,
-        ))
-
-    # Median
-    if median_ser is not None:
-        fig_plotly.add_trace(go.Scatter(
-            x=median_ser.index, y=median_ser.values,
-            mode="lines",
-            line=dict(color=C_MEDIAN, width=2, dash="dash"),
-            name="Median",
-            hovertemplate="Median<extra></extra>",
-        ))
-
-    # Current year
-    fig_plotly.add_trace(go.Scatter(
-        x=current.index, y=current.values,
-        mode="lines",
-        line=dict(color=C_CURRENT, width=2.5),
-        name=f"{current_year} (current)",
-        hovertemplate=f"{current_year}<extra></extra>",
-    ))
-
-    # Today vertical line
-    fig_plotly.add_vline(
-        x=current.index[-1].timestamp() * 1000,
-        line_dash="dot", line_color="#888", line_width=1,
-    )
-
-    fig_plotly.update_layout(
-        height=360,
-        plot_bgcolor=C_BG, paper_bgcolor=C_BG,
-        margin=dict(l=60, r=20, t=30, b=50),
-        hovermode="closest",
-        legend=dict(
-            orientation="h", x=0, y=1.02, xanchor="left", yanchor="bottom",
-            font=dict(size=10), bgcolor="rgba(0,0,0,0)",
-        ),
-        xaxis=dict(
-            tickfont=dict(size=9, color="#555"),
-            gridcolor=C_GRID, showgrid=False,
-            fixedrange=True,
-        ),
-        yaxis=dict(
-            title="Cumulative rainfall (mm)",
-            title_font=dict(size=10, color="#555"),
-            tickfont=dict(size=9, color="#555"),
-            gridcolor=C_GRID, showgrid=True,
-            rangemode="tozero", fixedrange=True,
-        ),
-    )
-
-    st.plotly_chart(fig_plotly, width="stretch", key="season_chart")
+    st.pyplot(fig, width='stretch')
 
     # ── Composite JPEG download (header panel + chart) ─────────────────────
     import matplotlib.gridspec as _gs
