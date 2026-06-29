@@ -429,6 +429,7 @@ def ensure_climate_cached(station_id: int,
       2. disk cache     — ~0.1 s  (parquet file < 24 hours old)
       3. SILO download  — 15–25 s (writes to both disk and session_state)
 
+    Raises SiloUnavailableError if SILO cannot be reached and no cache exists.
     Cache key is station_id only — all pages share the same data.
     """
     import streamlit as _st
@@ -448,11 +449,58 @@ def ensure_climate_cached(station_id: int,
         return df
 
     # 3. Download from SILO
-    df = fetch_station_met(station_id, _FULL_START, _full_end(), lat=lat, lon=lon)
+    try:
+        df = fetch_station_met(station_id, _FULL_START, _full_end(), lat=lat, lon=lon)
+    except Exception as exc:
+        raise SiloUnavailableError(str(exc)) from exc
+
     _save_disk_cache(station_id, df)
     ss["climate_df"]  = df
     ss["climate_key"] = key
     return df
+
+
+class SiloUnavailableError(RuntimeError):
+    """Raised when SILO cannot be reached and no cache is available."""
+
+
+def load_sample_data(session_state=None) -> tuple:
+    """
+    Load the bundled Dalby sample dataset.
+    Returns (df, station_info) where station_info matches the standard dict format.
+    Raises FileNotFoundError if sample_data/ files are missing from the repo.
+    """
+    import json as _json
+    import streamlit as _st
+
+    ss = session_state if session_state is not None else _st.session_state
+
+    sample_dir  = Path(__file__).resolve().parent.parent / "sample_data"
+    parquet_path = sample_dir / "dalby_sample.parquet"
+    json_path    = sample_dir / "dalby_station.json"
+
+    if not parquet_path.exists() or not json_path.exists():
+        raise FileNotFoundError(
+            "Sample data files not found in sample_data/. "
+            "Run fetch_sample_data.py locally to generate them."
+        )
+
+    df = pd.read_parquet(parquet_path)
+    meta = _json.loads(json_path.read_text())
+
+    station_info = {
+        "id":    meta["id"],
+        "name":  meta["name"],
+        "label": meta["label"],
+        "lat":   meta["lat"],
+        "lon":   meta["lon"],
+        "state": meta.get("state", "QLD"),
+    }
+
+    ss["climate_df"]  = df
+    ss["climate_key"] = f"climate_{meta['id']}"
+
+    return df, station_info
 
 
 def clear_stale_cache(max_age_days: int = 7) -> int:
