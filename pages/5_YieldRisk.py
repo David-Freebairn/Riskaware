@@ -132,13 +132,13 @@ if "show_info" not in st.session_state:
 
 info_col = st.columns([1, 2, 1])[1]
 with info_col:
-    if st.button("ℹ️ Information", key="info_btn", width="stretch"):
+    if st.button("ℹ️ About YieldRisk", key="info_btn", width="stretch"):
         st.session_state["show_info"] = not st.session_state["show_info"]
 
 if st.session_state["show_info"]:
     with st.container(border=True):
         st.markdown("""
-**About Yieldrisk**
+**About YieldRisk**
 
 Many agricultural decisions are based on our understanding of expectations.
 Such expectations are based on a blend of **current conditions** (knowable) and
@@ -146,27 +146,30 @@ Such expectations are based on a blend of **current conditions** (knowable) and
 long term weather data providing a probabilistic picture of the range of possible outcomes.
 Simple models support better information relating to the current and future outcomes.
 
-Set up each paddock with a **soil type, dates** for start of fallow, plant and harvest
-along with a **Water Use Efficiency** and **threshold water** value (WUE model).
-
-**Select a site** by typing the name of a nearby BoM weather site (hit Enter).
-A list of sites will come up — select the closest match and hit Select.
-It may take up to 1 minute to load 30 years of data but once loaded the analysis
-will be much faster for this site (for 1 day).
-
 **Yieldrisk** provides a comparative analysis of five aspects of crop outcomes:
 - Effectiveness of fallow in storing **soil water** (Howwet? 1984).
 - **Nitrogen mineralisation** influenced by surface moisture and temperature (ApSim 1998).
 - **In-crop rain** to date and expected rain to harvest.
 - **Photothermal quotient** — an index of favourable radiation and temperature.
 - Summarised as a **yield index** based on water use efficiency (French and Schultz 1984)
-  which is informed by three of the above: soil water at planting, nitrogen mineralisation
+  which is informed by: soil water at planting, nitrogen mineralisation
   and in-crop rain to date.
+
+Set up each paddock with a **soil type, dates** a start of fallow, plant and harvest date
+along with a **Water Use Efficiency** and **Threshold water** value for the WUE model.
+
+**Select a weather data site** by typing the name of a nearby BoM weather site (hit Enter).
+A list of sites will drop down — select the closest match and hit Select.
+It may take up to 1 minute to load 30 years of data but once loaded the analysis
+will be faster for further exploration of this site (for 1 day).
+
 
 **Interpretation**
 
 Each gauge bar shows this season's value against a band built from 30 years of
 daily weather data at the same site, soil and dates.
+
+Select the graph button on the right of each bar to see more detail
 
 **Focus on the relativities** of the current season compared to historic years rather
 than on the absolute values (mm soil water, kg/ha). The five attributes are presented as:
@@ -180,6 +183,16 @@ Weather history provides us with a robust source of probabilities of future even
 applying climatology. **No forecasts** are included in these analyses.
 
 ---
+Applications
+-  Provides an objective assessment of this season in relation to longer term conditions.
+-  Use to adjust expectations: fallow rainfall, in-crop rain and yield, fertilizer requirements. 
+
+Assumptions
+- It can be difficult to estimate a starting soil water unless the fallow starts after
+   a prolonged dry crop finish. An initial value of 5% is suggested – this can be changed
+   if you have more information.
+-  Soil cover is set at 50%. Water storage  with less cover may be lower than estimated.
+-  Starting soil water is assumed to be evenly distributed in the profile
 
 **Acknowledgements**
 
@@ -235,8 +248,8 @@ Probert, M. E., Dimes, J. P., Keating, B. A., Dalal, R. C., & Strong, W. M. (199
 APSIM's water and nitrogen modules and simulation of the dynamics of water and nitrogen
 in fallow systems. *Agricultural Systems, 56*(1), 1–28.
 
-Tennant, S., & Tennant, D. (2000). *Potential Yield Calculator (Version 2.31)* [Computer software].
-Agriculture Western Australia.
+Tennant, S., & Tennant, D. (2000). *Potential Yield Calculator (Version 2.31)* [
+Computer software]. Agriculture Western Australia.
 """)
 
 
