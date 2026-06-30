@@ -359,11 +359,11 @@ with st.container(border=True):
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         wue = st.number_input(
-            "WUE (kg/ha/mm)", min_value=0, value=25, step=1, key="wue",
+            "WUE (kg/ha/mm)", min_value=0, value=20, step=1, key="wue",
         )
     with c3:
         threshold_water = st.number_input(
-            "Threshold water (mm)", min_value=0, value=120, step=5, key="threshold_water",
+            "Threshold water (mm)", min_value=0, value=100, step=5, key="threshold_water",
         )
 
     # ── Persist setup values for when the user navigates away and back ──────
