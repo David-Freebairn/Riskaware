@@ -109,6 +109,26 @@ def read_soil_xml(filepath):
     cracking = crack_el is not None and crack_el.get('state','false').lower() == 'true'
     crack_infil = _get_scalar(st, 'MaxInfiltIntoCracks', default=10.0)
 
+    # Nitrogen mineralisation chemistry (used by core.nitrogen, ported from
+    # the HowWetN engine). Defaults to typical Queensland cracking clay values
+    # if absent — soils created before the nitrogen update won't have these tags.
+    # Typical values from CliMate HowWetN: OC ~1.2%, C:N ~12, coeff ~0.0003.
+    organic_carbon_pct  = _get_scalar(st, 'OrganicCarbon',                    default=1.2)
+    carbon_n_ratio      = _get_scalar(st, 'CarbonNitrogenRatio',               default=12.0)
+    n_mineral_coeff     = _get_scalar(st, 'NitrateMineralisationCoefficient',  default=0.0003)
+
+    # Warn if all three are zero (explicit zero in the file, not just absent)
+    _n_missing = (organic_carbon_pct == 0.0 and carbon_n_ratio == 0.0 and n_mineral_coeff == 0.0)
+    if _n_missing:
+        import warnings
+        warnings.warn(
+            f"Soil '{filepath.name}': nitrogen parameters (OrganicCarbon, "
+            "CarbonNitrogenRatio, NitrateMineralisationCoefficient) are all zero — "
+            "nitrogen mineralisation will be zero. Add these values to the .soil file "
+            "or check that the tags exist.",
+            UserWarning, stacklevel=2
+        )
+
     profile = SoilProfile(
         name                = name,
         layers              = layers,
@@ -126,6 +146,9 @@ def read_soil_xml(filepath):
         bulk_density        = sum(bulk_d) / len(bulk_d),  # mean, kept for compat
         cracking            = cracking,
         crack_infil         = crack_infil,
+        organic_carbon_pct            = organic_carbon_pct,
+        carbon_nitrogen_ratio          = carbon_n_ratio,
+        n_mineralisation_coefficient    = n_mineral_coeff,
     )
     profile.total_depth = depths[-1]
     profile.pawc_total  = sum(l.pawc for l in layers)

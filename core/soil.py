@@ -53,6 +53,12 @@ class SoilProfile:
     total_depth : float = 0.0
     pawc_total  : float = 0.0
 
+    # nitrogen mineralisation parameters (from HowLeaky .soil XML)
+    # defaulting to 0.0 so soils without these tags work unchanged
+    organic_carbon_pct          : float = 0.0
+    carbon_nitrogen_ratio       : float = 0.0
+    n_mineralisation_coefficient: float = 0.0
+
 
 def read_prm(filepath):
     """Parse a PERFECT .PRM soil parameter file."""

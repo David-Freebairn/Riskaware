@@ -119,5 +119,130 @@ div[data-testid="stNumberInput"] > label {
     color: #666 !important;
 }
 
+/* ── Tighter vertical spacing between stacked widgets (Season Tracker) ─
+   Reduces the default gap Streamlit adds around each element so a form
+   with many small inputs (dates, soil, crop fields) reads as compact
+   rather than airy. Targets the generic block/element wrappers rather
+   than anything page-specific, so should be safe to share across pages,
+   but scoped here in case it ever needs isolating. ────────────────────── */
+div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"] {
+    margin-bottom: 0.15rem !important;
+}
+div[data-testid="stHorizontalBlock"] {
+    gap: 0.5rem !important;
+    margin-bottom: 0.1rem !important;
+}
+.stMarkdown p {
+    margin-bottom: 0.2rem !important;
+}
+
+/* ── Minimum width for month selectboxes in the Dates section (Season
+   Tracker) ─ Column-ratio sizing alone can still truncate "Oct"/"Nov" to
+   "O.."/"N.." on narrower viewports since Streamlit's selectbox shrinks
+   its own width to fit its column regardless of content length. This
+   forces a floor width wide enough for any 3-letter month abbreviation
+   plus the dropdown chevron, targeting only the three date-month
+   selectboxes via their container keys so every other selectbox in the
+   app (e.g. soil type) is unaffected. ──────────────────────────────── */
+div[class*="st-key-month_start_wrap"] div[data-testid="stSelectbox"],
+div[class*="st-key-month_plant_wrap"] div[data-testid="stSelectbox"],
+div[class*="st-key-month_harvest_wrap"] div[data-testid="stSelectbox"] {
+    min-width: 78px !important;
+}
+div[class*="st-key-month_start_wrap"] div[data-baseweb="select"],
+div[class*="st-key-month_plant_wrap"] div[data-baseweb="select"],
+div[class*="st-key-month_harvest_wrap"] div[data-baseweb="select"] {
+    min-width: 78px !important;
+}
+/* ── "Graph" buttons — quiet outline style so the gauge bars stay dominant
+   The default coral/salmon Streamlit button colour reads as an alert/warning
+   which competes visually with the gauge content. Replace with a neutral
+   outline that recedes into the background. ──────────────────────────────── */
+div[data-testid="stColumn"] button[kind="secondary"] {
+    background-color: transparent !important;
+    border: 1.5px solid #b0c4d8 !important;
+    color: #1A5276 !important;
+    font-size: 0.8rem !important;
+    padding: 0.25rem 0.6rem !important;
+}
+div[data-testid="stColumn"] button[kind="secondary"]:hover {
+    background-color: #eaf2fb !important;
+    border-color: #1A5276 !important;
+}
+
+
+/* ── Result banner (2_Odds.py) ───────────────────────────────────────── */
+.result-banner {
+    background: #0b1f3a;
+    border-radius: 8px;
+    padding: 0.75rem 1.2rem;
+    margin: 0.8rem 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.rb-label {
+    font-size: 0.72rem;
+    color: #5d8ab0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.rb-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1;
+}
+.rb-pct {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #4da6ff;
+    margin-left: auto;
+}
+.paw-big      { font-size: 3rem; font-weight: 800; color: #1A3A6B; line-height: 1; }
+.paw-unit     { font-size: 1.4rem; color: #1A3A6B; margin-left: 4px; }
+.pawc-pct     { font-size: 1.1rem; color: #555; margin-left: 12px; }
+.fallow-label { font-size: 0.9rem; color: #555; margin-bottom: 0.5rem; }
+.date-loc     { font-weight: 600; }
+.loc          { font-weight: 700; color: #1A2F6B; }
+
+/* ── Tighter vertical spacing (YieldRisk setup form) ─────────────────── */
+div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"] {
+    margin-bottom: 0.15rem !important;
+}
+div[data-testid="stHorizontalBlock"] {
+    gap: 0.5rem !important;
+    margin-bottom: 0.1rem !important;
+}
+.stMarkdown p {
+    margin-bottom: 0.2rem !important;
+}
+
+/* ── Month selectbox minimum width (YieldRisk date inputs) ──────────── */
+div[class*="st-key-month_start_wrap"] div[data-testid="stSelectbox"],
+div[class*="st-key-month_plant_wrap"] div[data-testid="stSelectbox"],
+div[class*="st-key-month_harvest_wrap"] div[data-testid="stSelectbox"] {
+    min-width: 78px !important;
+}
+div[class*="st-key-month_start_wrap"] div[data-baseweb="select"],
+div[class*="st-key-month_plant_wrap"] div[data-baseweb="select"],
+div[class*="st-key-month_harvest_wrap"] div[data-baseweb="select"] {
+    min-width: 78px !important;
+}
+
+/* ── Graph buttons — quiet outline style ─────────────────────────────── */
+div[data-testid="stColumn"] button[kind="secondary"] {
+    background-color: transparent !important;
+    border: 1.5px solid #b0c4d8 !important;
+    color: #1A5276 !important;
+    font-size: 0.8rem !important;
+    padding: 0.25rem 0.6rem !important;
+}
+div[data-testid="stColumn"] button[kind="secondary"]:hover {
+    background-color: #eaf2fb !important;
+    border-color: #1A5276 !important;
+}
+
 </style>
 """
