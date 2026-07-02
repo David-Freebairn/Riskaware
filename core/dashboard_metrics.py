@@ -413,10 +413,11 @@ def compute_yield_projection(climate_df: pd.DataFrame, plant_md, harvest_md, tod
     actual = _build_actual_yield_series(climate_df, plant_date_this_year, today,
                                         soil_water_at_planting_mm, threshold_water_mm, wue_kg_ha_per_mm)
 
-    # Projected continuation (orange "median path"): built below from cond_p50
-    # so that it starts exactly at today's actual yield and adds the median
-    # of future rainfall increments across all comparable years from today.
-    # (The old single-median-year approach is removed — cond_p50 is correct.)
+    # Orange "median path" line is built below as cond_p50 — the day-by-day
+    # 50th percentile of all comparable years' FUTURE rainfall increments
+    # from today, each anchored to this season's actual cumulative rain.
+    # This produces a genuinely smooth median rather than a single year's
+    # step-pattern trajectory.
 
     # Conditional (inner, narrowing) plume: today -> harvest, 10th/90th
     # percentile band built by taking EACH historical year's own rainfall
@@ -465,9 +466,7 @@ def compute_yield_projection(climate_df: pd.DataFrame, plant_md, harvest_md, tod
             cond_p50 = pd.Series(np.nanpercentile(cond_yield_matrix, 50, axis=0), index=cond_dates)
             cond_p90 = pd.Series(np.nanpercentile(cond_yield_matrix, 90, axis=0), index=cond_dates)
 
-    return YieldProjection(full_dates, p10, p50, p90, actual,
-                           cond_p50,   # orange "median path" = median of future increments from today
-                           cond_p10, cond_p50, cond_p90,
+    return YieldProjection(full_dates, p10, p50, p90, actual, cond_p50, cond_p10, cond_p50, cond_p90,
                            today, harvest_date_this_year, n_comparable)
 
 
