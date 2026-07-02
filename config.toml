@@ -3,3 +3,7 @@ headless = true
 
 [theme]
 base = "light"
+primaryColor = "#1A4A6E"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#F4F6FA"
+textColor = "#444444"
