@@ -202,21 +202,10 @@ def compute_in_crop_rain(climate_df: pd.DataFrame, plant_md, today, min_comparab
     In-crop cumulative rainfall, plant_date -> today, vs. historical years.
     Returns not_yet_applicable=True (no calculation) if today is before
     plant_date for the current season.
-
-    Handles crops that cross the calendar year (e.g. plant Oct, harvest
-    Feb): if today's (month, day) falls before plant_md, the relevant
-    plant date is in today.year - 1, not today.year — otherwise a
-    just-completed crossing-year crop would incorrectly read as
-    "not yet applicable" when today is anchored to the harvest date
-    (which is chronologically before plant_md within the calendar year).
     """
     plant_m, plant_d = plant_md
-    if (today.month, today.day) < (plant_m, plant_d):
-        plant_year = today.year - 1
-    else:
-        plant_year = today.year
     try:
-        plant_date_this_year = pd.Timestamp(plant_year, plant_m, plant_d).date()
+        plant_date_this_year = pd.Timestamp(today.year, plant_m, plant_d).date()
     except ValueError:
         plant_date_this_year = today
     if today < plant_date_this_year:
@@ -232,17 +221,10 @@ def compute_photothermal_index(climate_df: pd.DataFrame, plant_md, today, min_co
     CUMULATIVE PTQ (running sum, not mean) from plant date to today.
     Returns not_yet_applicable=True (no calculation) if today is before
     plant_date for the current season.
-
-    Handles crossing-year crops the same way as compute_in_crop_rain —
-    see that function's docstring for why plant_year can be today.year - 1.
     """
     plant_m, plant_d = plant_md
-    if (today.month, today.day) < (plant_m, plant_d):
-        plant_year = today.year - 1
-    else:
-        plant_year = today.year
     try:
-        plant_date_this_year = pd.Timestamp(plant_year, plant_m, plant_d).date()
+        plant_date_this_year = pd.Timestamp(today.year, plant_m, plant_d).date()
     except ValueError:
         plant_date_this_year = today
     if today < plant_date_this_year:
@@ -362,27 +344,14 @@ def compute_yield_projection(climate_df: pd.DataFrame, plant_md, harvest_md, tod
     """
     plant_m, plant_d = plant_md
     harvest_m, harvest_d = harvest_md
-    crosses_year = (plant_m, plant_d) > (harvest_m, harvest_d)
-
-    # Anchor plant_date_this_year to whichever crop cycle "today" actually
-    # belongs to. For a crop that crosses the calendar year (e.g. plant Oct,
-    # harvest Jan), if today's (month, day) falls BEFORE the plant date in
-    # calendar terms, today is either still in-crop from a cycle that
-    # started LAST year, or already in the next fallow after that cycle's
-    # harvest — either way the relevant plant year is today.year - 1, not
-    # today.year (which would incorrectly project a future, not-yet-started
-    # season). This mirrors _season_year_for_end's logic in season_metrics.py.
-    if crosses_year and (today.month, today.day) < (plant_m, plant_d):
-        plant_year = today.year - 1
-    else:
-        plant_year = today.year
 
     try:
-        plant_date_this_year = pd.Timestamp(plant_year, plant_m, plant_d).date()
+        plant_date_this_year = pd.Timestamp(today.year, plant_m, plant_d).date()
     except ValueError:
         plant_date_this_year = today
 
-    harvest_year = plant_year + 1 if crosses_year else plant_year
+    crosses_year = (plant_m, plant_d) > (harvest_m, harvest_d)
+    harvest_year = today.year + 1 if crosses_year else today.year
     try:
         harvest_date_this_year = pd.Timestamp(harvest_year, harvest_m, harvest_d).date()
     except ValueError:
@@ -444,31 +413,10 @@ def compute_yield_projection(climate_df: pd.DataFrame, plant_md, harvest_md, tod
     actual = _build_actual_yield_series(climate_df, plant_date_this_year, today,
                                         soil_water_at_planting_mm, threshold_water_mm, wue_kg_ha_per_mm)
 
-    # Projected continuation: today -> harvest, using the MEDIAN historical
-    # year's day-to-day RAINFALL INCREMENTS added on top of today's actual
-    # cumulative rain (not the median yield level itself).
-    projected = None
-    if actual is not None and len(actual) > 0 and today < harvest_date_this_year:
-        median_year_rain = _select_median_year_rain_trajectory(rain_traj_by_year, n_full)
-        if median_year_rain is not None:
-            today_idx_in_full = (pd.Timestamp(today) - pd.Timestamp(plant_date_this_year)).days
-            today_idx_in_full = max(0, min(today_idx_in_full, n_full - 1))
-
-            current_cum_rain = climate_df["rain"].fillna(0.0).loc[
-                pd.Timestamp(plant_date_this_year):pd.Timestamp(today)
-            ].sum()
-
-            proj_dates = full_dates[today_idx_in_full:]
-            proj_rain = [current_cum_rain]
-            for i in range(today_idx_in_full + 1, n_full):
-                increment = median_year_rain[i] - median_year_rain[i - 1] if i > 0 else 0.0
-                increment = max(0.0, increment)
-                proj_rain.append(proj_rain[-1] + increment)
-            proj_yield = [
-                calc_yield_outlook(soil_water_at_planting_mm, r, threshold_water_mm, wue_kg_ha_per_mm)
-                for r in proj_rain
-            ]
-            projected = pd.Series(proj_yield, index=proj_dates)
+    # Projected continuation (orange "median path"): built below from cond_p50
+    # so that it starts exactly at today's actual yield and adds the median
+    # of future rainfall increments across all comparable years from today.
+    # (The old single-median-year approach is removed — cond_p50 is correct.)
 
     # Conditional (inner, narrowing) plume: today -> harvest, 10th/90th
     # percentile band built by taking EACH historical year's own rainfall
@@ -517,7 +465,9 @@ def compute_yield_projection(climate_df: pd.DataFrame, plant_md, harvest_md, tod
             cond_p50 = pd.Series(np.nanpercentile(cond_yield_matrix, 50, axis=0), index=cond_dates)
             cond_p90 = pd.Series(np.nanpercentile(cond_yield_matrix, 90, axis=0), index=cond_dates)
 
-    return YieldProjection(full_dates, p10, p50, p90, actual, projected, cond_p10, cond_p50, cond_p90,
+    return YieldProjection(full_dates, p10, p50, p90, actual,
+                           cond_p50,   # orange "median path" = median of future increments from today
+                           cond_p10, cond_p50, cond_p90,
                            today, harvest_date_this_year, n_comparable)
 
 
