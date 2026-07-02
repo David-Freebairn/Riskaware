@@ -25,6 +25,8 @@ html, body, [class*="css"] { font-family: 'Source Sans 3', sans-serif; }
 [data-testid="stSidebarNav"] a[href*="3_Howwet"]::before { content: "Water stored?"; visibility: visible; }
 [data-testid="stSidebarNav"] a[href*="4_Snapshot"] span { visibility: hidden; }
 [data-testid="stSidebarNav"] a[href*="4_Snapshot"]::before { content: "Snapshot"; visibility: visible; }
+[data-testid="stSidebarNav"] a[href*="5_YieldRisk"] span { visibility: hidden; }
+[data-testid="stSidebarNav"] a[href*="5_YieldRisk"]::before { content: "YieldRisk"; visibility: visible; }
 
 .tool-title { font-size: 1.3rem; font-weight: 700; color: #1a4a6e; margin-bottom: 0.3rem; }
 .tool-desc  { font-size: 1rem; color: #444; line-height: 1.6; }
@@ -117,6 +119,7 @@ to demonstrate new software and App development capabilities.
 
 st.divider()
 
+st.markdown("##### 🌧️ Rainfall & soil water")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
@@ -135,7 +138,11 @@ with col4:
     st.page_link("pages/4_Snapshot.py",
                  label="📸 **Snapshot of weather**  \nGraphs of one year's temperature and rainfall, and 100 years of annual rainfall.")
 
-st.divider()
+st.markdown("##### 🌾 Crop & yield outlook")
+col5, col6, col7, col8 = st.columns(4)
+with col5:
+    st.page_link("pages/5_YieldRisk.py",
+                 label="🌱 **YieldRisk**  \nFallow water & nitrogen, in-crop rain, photothermal quotient and crop yield outlook — five gauge bars tracking season progress.")
 st.caption(
     "An objective assessment of system status and rainfall risks "
 )
