@@ -81,51 +81,41 @@ st.markdown(
 
 with st.expander("ℹ️ About RiskAware"):
     st.markdown("""
-Agricultural decisions are generally based on our understanding of **Current conditions**
-and **Future expectations**.
-Current conditions are what we sense around us. Some things are obvious, some less so
-e.g. how much available water and nutrient in soils. 
-Future expectations are based on our experience, with a natural bias toward recent 
-experiences. An example “decision” might be to plant a crop now, or delay with the
-expectation of a better start later. This decision is a mix of current and future events.
-RiskAware’s four analyses provide insight into both current conditions (soil water) 
-and future events (rainfall) based recent and long-term weather records.
-Our weather history is a rich source of “book maker odds” or probabilities of future
-rainfall using what we call climatology. Application of long-term records save us from
-the trap of recent history bias.
+Agricultural decisions are generally based on an understanding of **Current conditions** and **Future expectations**. Current conditions are what we sense around us and can be inferred by recent weather data. Future expectations are based on our experience, with a natural bias toward recent experiences. **RiskAware’s five analyses** provide insight into both current conditions (soil water, nitrate mineralisation) and future events (rainfall). Application of long-term records help us avoid the trap of recent history bias.
 
-- **How’s the season** simply gives us an objective assessment of the chances of rain
-     since a specified date. Is it well above, below or near average? 
-- **What are the odds?** Provides an unbiased estimate of the chances of a specified 
-     event (planting rain, wet harvest etc). 
-- **How much rain is stored?** uses recent rainfall data to estimate how well rain
-     is stored in the soil, considering evaporation, runoff and drainage losses.
-- **Snapshot** provides a graphical view of a previous year’s weather and long-term 
-     annual rainfall. How variable is weather? 
-     
+-  **How’s the season** provides an objective assessment of rain since a specified date. Is the season well above, below or near average?
+-  **What are the odds?** provides an unbiased estimate of the chances of a specified rain event such as planting rain.
+-  **How much rain is stored?** uses recent rainfall data to estimate how well rain is stored in the soil, considering evaporation, runoff and drainage losses.
+-  **Snapshot**provides a graphical comparison of a previous year’s weather and long-term average values. 
+-  **YieldRisk** provides a comparative analysis of five aspects leading to crop outcomes, from the start of fallow, a plant date to an expected yield: effectiveness of fallow rainfall, in_crop rain, nitrogen mineralisation; photothermal quotient and a yield index based on the water use efficiency model.
+
+
+
 **Acknowledgements**
 
-**Weather data:** Queensland Government's SILO database sourced from the Bureau of Meteorology
- and the many voluntary weather recorders across the Australian continent since the 1890’s
+**Weather data:** Queensland Government's SILO database sourced from the Bureau of Meteorology and the many voluntary weather recorders across the Australian continent since the 1890’s
 
-**Soil water estimate:** Applies a well-tested water balance model used in models
-such as PERFECT (1989), Howwet? (1994) and ApSim (1994)
+**Soil water and nitrate mineralisation** estimate: Uses a well-tested water balance model used in models such as PERFECT, Howwet? and ApSim (1994)
 
-**Interface:**
- Standard graphical presentations also used in Howwet? (Dimes et al 1996)
-" and Australian CliMate (Freebairn and McClymont 2025). 
-Snapshot graphic is based on an image “NEW YORK CITY'S WEATHER FOR 1980” from the 
-New York Times  January 11th 1982, page 32, sourced from Edward Tufte (1983)
-The Visual Display of Quantitative Information.
+**Interface:** Graphical presentations also used in Howoften?, Howwet? and PYCalc while the “Snapshot” graphic is based on an image in the New York Times 1982. 
 
 **Disclosure**
+These analyses have been developed based on previous experience in designing climate focused decision support tools. I have used Anthropic’s Claude AI software This software does not have the same polish as previous DSSs and was built to demonstrate new software and App development capabilities.
+**Comments welcomed** David Freebairn: david.freebairn@gmail.com
 
-These analyses have been developed based on previous experience in designing
-climate focused decision support tools. I have used Anthropic’s Claude AI software
-This software does not have the same polish as previous DSSs and was built
-to demonstrate new software and App development capabilities.
+**References**
 
-**Comments welcomed** David Freebairn em: david.freebairn@gmail.com 
+Anthropic. (2026). Claude (Sonnet 4.6) [Large language model]. https://claude.ai
+
+Freebairn, D.M. and McClymont, D. (2025). Australian CliMate – a decision support tool for agricultural decision makers. Climate, preprint 3755700. https://doi.org/10.20944/preprints202507.1081.v1 
+
+Glanville, S.F. and Freebairn, D.M., (1997). Howoften?  A software tool to examine the probabilities of rainfall events. A computer program-©. Agricultural Production Systems Research Unit, QDPI-CSIRO, Toowoomba, Queensland.
+
+Littleboy, M., Silburn, D.M., Freebairn, D.M., Woodruff, D.R. and Hammer, G.L. (1989). PERFECT: A simulation model of Productivity Erosion Runoff Functions to Evaluate Conservation Techniques. QDPI Bulletin QB89005. Queensland Department of Primary Industries, Brisbane, Australia. 
+
+McCown, R.L., Hammer, G.L., Hargreaves, J.N.G., Holzworth, D. and Freebairn, D.M. (1996). APSIM: A novel software system for model development, model testing, and simulation in agricultural systems research. Agricultural Systems, 50, 255–271.
+ 
+New York Times (1982). New York City's weather for 1980. The New York Times, 11 January 1982, p. 32. Cited in Tufte, E.R. (1983). The Visual Display of Quantitative Information. Cheshire, CT: Graphics Press.
 
 """)
 
