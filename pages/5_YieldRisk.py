@@ -4,7 +4,8 @@ import os
 import sys
 from pathlib import Path
 
-# Ensure repo root is on sys.path so gauge_utils and core.* resolve correctly
+# Ensure repo root (parent of pages/) is on sys.path so core.* and
+# gauge_utils resolve correctly regardless of working directory.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
@@ -16,11 +17,12 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from core.silo import search_stations, ensure_climate_cached, SiloUnavailableError
+from core.silo import search_stations, ensure_climate_cached
 from core.soil_xml import read_soil_xml
 from core.styles import apply_styles, save_station, load_station
 from core.dashboard_metrics import (
     compute_fallow_water_and_n_gain,
+    compute_full_season_nitrogen,
     compute_in_crop_rain,
     compute_photothermal_index,
     compute_crop_expectation_from_projection,
@@ -132,50 +134,58 @@ if "show_info" not in st.session_state:
 
 info_col = st.columns([1, 2, 1])[1]
 with info_col:
-    if st.button("ℹ️ About YieldRisk", key="info_btn", width="stretch"):
+    if st.button("ℹ️ Information", key="info_btn", width="stretch"):
         st.session_state["show_info"] = not st.session_state["show_info"]
 
 if st.session_state["show_info"]:
     with st.container(border=True):
         st.markdown("""
-**Setting up your paddock**
+**About Yieldrisk**
 
-- Select a **soil type** from the dropdown menu.
-- select **dates** for start of fallow, plant and harvest. These can go from last year to current year.
-- adjust **Water Use Efficiency** and **threshold water** value (WUE model) to suit your crop.
-- **Select a site** by typing part of the name of a nearby BoM weather station (hit Enter)
+Many agricultural decisions are based on our understanding of expectations.
+Such expectations are based on a blend of **current conditions** (knowable) and
+**future expectations.** Future expectations relating to weather can be derived from
+long term weather data providing a probabilistic picture of the range of possible outcomes.
+Simple models support better information relating to the current and future outcomes.
+
+Set up each paddock with a **soil type, dates** for start of fallow, plant and harvest
+along with a **Water Use Efficiency** and **threshold water** value (WUE model).
+
+**Select a site** by typing the name of a nearby BoM weather site (hit Enter).
 A list of sites will come up — select the closest match and hit Select.
-
-It may take up to 1 minute to load long term weather data from Siloo.
- Once loaded, further analysis will be much faster for this site and session for the day.
+It may take up to 1 minute to load 30 years of data but once loaded the analysis
+will be much faster for this site (for 1 day).
 
 **Yieldrisk** provides a comparative analysis of five aspects of crop outcomes:
-- Effectiveness of fallow in storing **soil water** .
-- **Nitrogen mineralisation** influenced by surface moisture and temperature.
+- Effectiveness of fallow in storing **soil water** (Howwet? 1984).
+- **Nitrogen mineralisation** influenced by surface moisture and temperature (ApSim 1998).
 - **In-crop rain** to date and expected rain to harvest.
 - **Photothermal quotient** — an index of favourable radiation and temperature.
-- Summarised as a **yield index** based on water use efficiency
-  which is informed by: soil water at planting and in-crop rain to date.
- 
- **Interpretation**
-  
-  Each gauge bar shows this season's value against a band built from 30 years of
+- Summarised as a **yield index** based on water use efficiency (French and Schultz 1984)
+  which is informed by three of the above: soil water at planting, nitrogen mineralisation
+  and in-crop rain to date.
+
+**Interpretation**
+
+Each gauge bar shows this season's value against a band built from 30 years of
 daily weather data at the same site, soil and dates.
 
-Nitrate mineralisation and photothermal quotient do not influence the WUE yield estimate
-  but provide a view of favourable nitrate accumulation in the fallow and growing conditions
-  relative to the long term
-
 **Focus on the relativities** of the current season compared to historic years rather
-than on the absolute values (mm soil water, kg/ha). 
-
-The five attributes are presented as:
+than on the absolute values (mm soil water, kg/ha). The five attributes are presented as:
 - **low** (lowest 25% of years)
 - **below average** (25–45%)
 - **average** (middle 45–55%)
 - **above average** (55–75%)
 - **high** (top 25% of years)
+
+Weather history provides us with a robust source of probabilities of future events by
+applying climatology. **No forecasts** are included in these analyses.
+
 ---
+
+**Acknowledgements**
+
+**Weather data:** Queensland Government's SILO database sourced from the Bureau of Meteorology.
 
 **Soil water estimates:** Applies a well-tested water balance model that considers evaporation,
 runoff and drainage losses on a daily basis, as used in Howwet? (Dimes et al., 1996).
@@ -184,12 +194,28 @@ runoff and drainage losses on a daily basis, as used in Howwet? (Dimes et al., 1
 controlled by the moisture content of the surface layers and temperature using a simplified
 version of a model in APSim (Probert et al., 1998) and implemented in Howwet? (Freebairn et al., 1994).
 
-**Yield estimates** are based on the Water Use Efficiency (WUE) model (French and Schultz, 1984)
- as implemented in Potential Yield Calculator (Tennant and Tennant, 2000).
- 
+**Yield estimates** are based on a version of the Water Use Efficiency (WUE) model
+(French and Schultz, 1984) as implemented in Potential Yield Calculator (Tennant and Tennant, 2000).
+
+**Interface:** Interface designs are a blend of several early decision support tools
+(Howwet?, Howoften? and Australian CliMate, Freebairn and McClymont 2025) and many other
+products developed since the widespread uptake of computers in agriculture.
+
 ---
 
-**References for YieldRisk**
+**Disclosure**
+
+These analyses have been developed based on previous experience in designing climate-focused
+decision support tools using Anthropic's Claude AI software (Anthropic, 2026).
+This software was built to demonstrate new software and App development capabilities.
+
+Comments welcomed — David Freebairn · david.freebairn@gmail.com
+
+---
+
+**References**
+
+Anthropic. (2026). *Claude (Sonnet 4.6)* [Large language model]. https://claude.ai
 
 Dimes, J. P., Freebairn, D. M., & Glanville, S. F. (1996). HOWWET? A tool for predicting
 fallow water storage. *Proceedings of the 8th Australian Agronomy Conference*, Toowoomba, pp. 207–210.
@@ -202,6 +228,10 @@ environment. I. The relation between yield, water use and climate.
 Freebairn, D. M., Hamilton, A. H., Cox, P. G., & Holzworth, D. (1994). *HOWWET? Estimating
 the storage of water in your soil using rainfall records: A computer program.*
 Agricultural Production Systems Research Unit, Queensland DPI–CSIRO.
+
+Freebairn, D. M., & McClymont, D. (2025). Australian CliMate – A decision support tool
+for agricultural decision makers. *Climate* (preprint 3755700).
+https://doi.org/10.20944/preprints202507.1081.v1
 
 Probert, M. E., Dimes, J. P., Keating, B. A., Dalal, R. C., & Strong, W. M. (1998).
 APSIM's water and nitrogen modules and simulation of the dynamics of water and nitrogen
@@ -220,14 +250,6 @@ if "reset_station" not in st.session_state:
     st.session_state["reset_station"] = False
 if st.session_state.pop("reset_station", False):
     st.session_state["confirmed"] = False
-    st.session_state["chosen"]    = None
-    st.session_state["stations"]  = []
-    st.session_state.pop("climate_df",  None)
-    st.session_state.pop("climate_key", None)
-    for _k in ("soil_select", "start_day", "start_month", "plant_day", "plant_month",
-                "harvest_day", "harvest_month", "wue", "threshold_water"):
-        st.session_state.pop(_k, None)
-    save_station(None)   # now actually clears _shared_station
     st.session_state["stations"] = []
     st.session_state["chosen"] = None
     st.session_state["last_query"] = ""
@@ -236,34 +258,15 @@ if st.session_state.pop("reset_station", False):
     st.session_state["using_sample"] = False
     st.session_state["silo_down"] = False
     st.session_state.pop("silo_error", None)
-    st.session_state["_yr_just_reset"] = True   # flag for pre-populate guard
+    st.session_state.pop("climate_df", None)
+    st.session_state.pop("climate_key", None)
+    st.session_state.pop("_shared_station", None)
+    st.session_state["_yr_just_reset"] = True
 
 with st.container(border=True):
     st.markdown('<p class="section-title">Soil type</p>', unsafe_allow_html=True)
     soil_files = load_soil_files()
     soil_labels = [f.stem.replace("_", " ") for f in soil_files]
-
-    # ── Restore persisted setup values (survives navigating to other pages) ──
-    _yr_setup = st.session_state.get("yr_setup", {})
-
-    # Set defaults ONCE the first time the page ever loads (keys absent),
-    # then restore from yr_setup on subsequent visits.
-    # Using setdefault means we never overwrite a value Streamlit already owns.
-    _defaults = {
-        "soil_select":    0,
-        "start_day":      1,  "start_month":   MONTH_NAMES[11],
-        "plant_day":      1,  "plant_month":   MONTH_NAMES[3],
-        "harvest_day":    1,  "harvest_month": MONTH_NAMES[10],
-        "wue":            15, "threshold_water": 100,
-    }
-    for _k, _v in _defaults.items():
-        # First visit: use saved setup if available, else factory default
-        if _k not in st.session_state:
-            st.session_state[_k] = _yr_setup.get(_k, _v)
-
-    if soil_labels and st.session_state["soil_select"] >= len(soil_labels):
-        st.session_state["soil_select"] = 0
-
     if soil_labels:
         soil_idx = st.selectbox(
             "soil", range(len(soil_labels)), format_func=lambda i: soil_labels[i],
@@ -288,13 +291,13 @@ with st.container(border=True):
                 g1a, g1b = st.columns([1, 1.6])
                 with g1a:
                     start_day = st.number_input(
-                        "Start day", 1, 31, label_visibility="collapsed",
+                        "Start day", 1, 31, 1, label_visibility="collapsed",
                         key="start_day", format="%d",
                     )
                 with g1b:
                     with st.container(key="month_start_wrap"):
                         start_month = st.selectbox(
-                            "Start month", MONTH_NAMES,
+                            "Start month", MONTH_NAMES, index=0,
                             label_visibility="collapsed", key="start_month",
                         )
 
@@ -307,13 +310,13 @@ with st.container(border=True):
                 g2a, g2b = st.columns([1, 1.6])
                 with g2a:
                     plant_day = st.number_input(
-                        "Plant day", 1, 31, label_visibility="collapsed",
+                        "Plant day", 1, 31, 1, label_visibility="collapsed",
                         key="plant_day", format="%d",
                     )
                 with g2b:
                     with st.container(key="month_plant_wrap"):
                         plant_month = st.selectbox(
-                            "Plant month", MONTH_NAMES,
+                            "Plant month", MONTH_NAMES, index=2,
                             label_visibility="collapsed", key="plant_month",
                         )
 
@@ -326,13 +329,13 @@ with st.container(border=True):
                 g3a, g3b = st.columns([1, 1.6])
                 with g3a:
                     harvest_day = st.number_input(
-                        "Harvest day", 1, 31, label_visibility="collapsed",
+                        "Harvest day", 1, 31, 1, label_visibility="collapsed",
                         key="harvest_day", format="%d",
                     )
                 with g3b:
                     with st.container(key="month_harvest_wrap"):
                         harvest_month = st.selectbox(
-                            "Harvest month", MONTH_NAMES,
+                            "Harvest month", MONTH_NAMES, index=10,
                             label_visibility="collapsed", key="harvest_month",
                         )
 
@@ -340,29 +343,19 @@ with st.container(border=True):
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         wue = st.number_input(
-            "WUE (kg/ha/mm)", min_value=0, step=1, key="wue",
+            "WUE (kg/ha/mm)", min_value=0, value=15, step=1, key="wue",
         )
     with c3:
         threshold_water = st.number_input(
-            "Threshold water (mm)", min_value=0, step=5, key="threshold_water",
+            "Threshold water (mm)", min_value=0, value=120, step=5, key="threshold_water",
         )
-
-    # ── Persist setup values for when the user navigates away and back ──────
-    st.session_state["yr_setup"] = {
-        "soil_idx": soil_idx if soil_labels else 0,
-        "start_day": start_day, "start_month": start_month,
-        "plant_day": plant_day, "plant_month": plant_month,
-        "harvest_day": harvest_day, "harvest_month": harvest_month,
-        "wue": wue, "threshold_water": threshold_water,
-    }
 
     st.markdown('<p class="section-title">Select site</p>', unsafe_allow_html=True)
     confirmed = st.session_state.get("confirmed", False)
     station_info = None
 
     # Pre-populate from shared station (set by any other RiskAware page),
-    # but NOT if we just hit Change — the reset handler cleared _shared_station
-    # and set _yr_just_reset so we don't immediately re-confirm the old station.
+    # but not immediately after a Change reset.
     if not confirmed and not st.session_state.pop("_yr_just_reset", False):
         _shared = load_station()
         if _shared:
@@ -482,54 +475,21 @@ with st.container(border=True):
 # ---------------------------------------------------------------------------
 # "How are we going as of [date] ?" — today's date + gauge stack
 # ---------------------------------------------------------------------------
-fallow_start_md = (MONTH_NAMES.index(start_month) + 1, start_day)
-plant_md = (MONTH_NAMES.index(plant_month) + 1, plant_day)
-harvest_md = (MONTH_NAMES.index(harvest_month) + 1, harvest_day)
-
-_crosses_year = (plant_md[0], plant_md[1]) > (harvest_md[0], harvest_md[1])
-_looking_back = _crosses_year and (
-    (dt.date.today().month, dt.date.today().day) < plant_md
+st.markdown(
+    "<h1 style='color:#1f6fb4; margin-top:1em; margin-bottom:0.3em;'>How are we going as of</h1>",
+    unsafe_allow_html=True,
 )
-
-if _looking_back:
-    _harvest_label_year = dt.date.today().year
-    _harvest_label_date = f"{harvest_md[1]} {MONTH_NAMES[harvest_md[0]-1]} {_harvest_label_year}"
-    st.markdown(
-        f"<h1 style='color:#888; margin-top:1em; margin-bottom:0.1em;'>"
-        f"📅 Looking back — season harvested {_harvest_label_date}</h1>",
-        unsafe_allow_html=True,
+header_cols = st.columns([1, 1, 0.7, 7])
+with header_cols[0]:
+    today_day = st.number_input("Today's day", 1, 31, dt.date.today().day, label_visibility="collapsed", key="today_day")
+with header_cols[1]:
+    today_month = st.selectbox(
+        "Today's month", MONTH_NAMES, index=dt.date.today().month - 1,
+        label_visibility="collapsed", key="today_month",
     )
-    st.caption(
-        "Today's date falls before this season's plant date, so the dashboard "
-        "is showing the most recently completed crop cycle (harvest date above) "
-        "rather than an in-progress one."
-    )
-    header_cols = st.columns([0.7, 8.3])
-    with header_cols[0]:
-        if st.button("❓", key="gauge_help_btn"):
-            st.session_state["show_gauge_help"] = not st.session_state.get("show_gauge_help", False)
-    # today_day/today_month still need to exist for downstream code, but the
-    # actual date used for calculations is resolved later from the harvest
-    # date — these widgets are hidden while looking back since picking a
-    # date here can't represent "last season" (see _looking_back logic above).
-    today_day = dt.date.today().day
-    today_month = MONTH_NAMES[dt.date.today().month - 1]
-else:
-    st.markdown(
-        "<h1 style='color:#1f6fb4; margin-top:1em; margin-bottom:0.3em;'>How are we going as of</h1>",
-        unsafe_allow_html=True,
-    )
-    header_cols = st.columns([1, 1, 0.7, 7])
-    with header_cols[0]:
-        today_day = st.number_input("Today's day", 1, 31, dt.date.today().day, label_visibility="collapsed", key="today_day")
-    with header_cols[1]:
-        today_month = st.selectbox(
-            "Today's month", MONTH_NAMES, index=dt.date.today().month - 1,
-            label_visibility="collapsed", key="today_month",
-        )
-    with header_cols[2]:
-        if st.button("❓", key="gauge_help_btn"):
-            st.session_state["show_gauge_help"] = not st.session_state.get("show_gauge_help", False)
+with header_cols[2]:
+    if st.button("❓", key="gauge_help_btn"):
+        st.session_state["show_gauge_help"] = not st.session_state.get("show_gauge_help", False)
 
 if st.session_state.get("show_gauge_help", False):
     st.info(
@@ -555,21 +515,9 @@ except ValueError:
     st.error("Invalid today's date.")
     st.stop()
 
-# When looking back at a just-completed crossing-year season, anchor "today"
-# to that season's harvest date rather than the real current date. This
-# makes every downstream calculation (fallow window, in-crop rain, PTQ,
-# yield) consistently resolve to the COMPLETED season rather than treating
-# the real current date as mid-fallow for a season that hasn't started yet.
-# The harvest that just passed falls in the SAME calendar year as the real
-# "today" — _looking_back only fires when today's (month, day) is before
-# plant_md, which for a crossing crop (e.g. plant Oct, harvest Jan) means
-# today is somewhere in Jan-Sep, i.e. after this calendar year's harvest.
-if _looking_back:
-    harvest_year = dt.date.today().year
-    try:
-        today = dt.date(harvest_year, harvest_md[0], harvest_md[1])
-    except ValueError:
-        today = dt.date(harvest_year, harvest_md[0], 28)
+fallow_start_md = (MONTH_NAMES.index(start_month) + 1, start_day)
+plant_md = (MONTH_NAMES.index(plant_month) + 1, plant_day)
+harvest_md = (MONTH_NAMES.index(harvest_month) + 1, harvest_day)
 
 # ── Fetch climate + soil (cached) ───────────────────────────────────────────
 _was_ready_before_fetch = st.session_state.get("climate_ready", False)
@@ -621,6 +569,12 @@ profile = read_soil_xml(soil_path)
 # ── Compute the five metrics ────────────────────────────────────────────────
 water_res, nitrogen_res = compute_fallow_water_and_n_gain(
     climate_df, profile, fallow_start_md, plant_md, today, sw_init_frac=0.05,
+)
+
+# Full-season nitrogen for the detail graph (fallow_start -> today/harvest)
+# The gauge percentile still uses nitrogen_res (fallow window only)
+nitrogen_full_res = compute_full_season_nitrogen(
+    climate_df, profile, fallow_start_md, plant_md, harvest_md, today, sw_init_frac=0.05,
 )
 rain_res = compute_in_crop_rain(climate_df, plant_md, today)
 ptq_res = compute_photothermal_index(climate_df, plant_md, today)
@@ -688,6 +642,14 @@ for i, (result, (color_low, color_high)) in enumerate(GAUGES):
     if st.session_state["graph_open"].get(i, False):
         if i == YIELD_GAUGE_INDEX:
             detail_fig = make_yield_projection_figure(yield_projection)
+        elif i == 1:
+            # Nitrogen — full-season series with plant date marker
+            plant_date_for_graph = pd.Timestamp(
+                (today.year - 1 if (plant_md[0], plant_md[1]) > (today.month, today.day)
+                 else today.year),
+                plant_md[0], plant_md[1]
+            ).date()
+            detail_fig = make_detail_figure(nitrogen_full_res, plant_date=plant_date_for_graph)
         else:
             detail_fig = make_detail_figure(result)
         st.plotly_chart(detail_fig, width="stretch", config={"displayModeBar": False}, key=f"detail_{i}")
