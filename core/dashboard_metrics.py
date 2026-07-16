@@ -181,9 +181,144 @@ def compute_fallow_water_and_n_gain(climate_df: pd.DataFrame, profile,
         pasw_series_by_year, current_season_year, "Fallow water gain", "mm", min_comparable_years
     )
     nitrogen_result = _rank_against_history(
-        n_series_by_year, current_season_year, "Fallow nitrogen gain", "kg/ha", min_comparable_years
+        n_series_by_year, current_season_year, "Nitrogen mineralisation (kg/ha)", "kg/ha", min_comparable_years
     )
     return water_result, nitrogen_result
+
+
+def compute_full_season_nitrogen(climate_df: pd.DataFrame, profile,
+                                 fallow_start_md, plant_md, harvest_md, today,
+                                 sw_init_frac=0.05, green_cover=0.0, total_cover=0.1,
+                                 min_comparable_years=3):
+    """
+    Nitrogen mineralisation from fallow_start through to today (current season)
+    and through to harvest (historical years). Used for the detail chart only —
+    the gauge percentile ranking still uses the fallow-only window from
+    compute_fallow_water_and_n_gain.
+
+    Returns a MetricResult whose series_by_year covers the full fallow + crop
+    window, labelled 'Nitrogen mineralisation gain (kg/ha)'.
+    """
+    start_m, start_d = fallow_start_md
+    plant_m, plant_d = plant_md
+    harvest_m, harvest_d = harvest_md
+
+    crosses_to_plant   = (start_m, start_d) > (plant_m, plant_d)
+    crosses_to_harvest = (plant_m, plant_d) > (harvest_m, harvest_d)
+
+    data_years = sorted({d.year for d in climate_df.index if d.year >= HIST_FLOOR_YEAR})
+    if not data_years:
+        return _empty_result("Nitrogen mineralisation gain", "kg/ha", today.year)
+
+    current_season_year = _season_year_for_end(today.year, plant_m, plant_d, start_m, start_d) \
+        if today >= _date_from_md(plant_md, today.year, start_md=fallow_start_md) \
+        else _season_year_for_end(today.year, today.month, today.day, start_m, start_d)
+
+    n_series_by_year = {}
+
+    for sy in range(data_years[0], today.year + 1):
+        is_current = (sy == current_season_year)
+
+        # Fallow window: fallow_start(sy) -> plant_date
+        fallow_stop_y = sy + 1 if crosses_to_plant else sy
+        try:
+            fallow_start_ts = pd.Timestamp(sy, start_m, start_d)
+            plant_ts        = pd.Timestamp(fallow_stop_y, plant_m, plant_d)
+        except ValueError:
+            continue
+
+        # Crop window: plant_date -> today (current) or harvest (historical)
+        harvest_stop_y = fallow_stop_y + 1 if crosses_to_harvest else fallow_stop_y
+        try:
+            harvest_ts = pd.Timestamp(harvest_stop_y, harvest_m, harvest_d)
+        except ValueError:
+            continue
+
+        if is_current:
+            full_end = min(pd.Timestamp(today), harvest_ts)
+        else:
+            full_end = harvest_ts
+
+        if fallow_start_ts >= full_end:
+            continue
+
+        window = climate_df.loc[fallow_start_ts:full_end]
+        if window.empty or len(window) < 5:
+            continue
+        if not is_current and window["rain"].isna().mean() > 0.1:
+            continue
+
+        # Run water balance over the full window for sw1_above_wp
+        wb_df = _run_water_balance_series(window, profile, sw_init_frac, green_cover, total_cover)
+
+        # Compute daily N over fallow + crop window
+        n_series = []
+        cum_n = 0.0
+        layer1 = profile.layers[0]
+        for i, (_, row) in enumerate(window.iterrows()):
+            tmean = row.get("tmean", np.nan)
+            if np.isnan(tmean):
+                tmean = window["tmean"].mean()
+            daily_n = daily_n_mineralisation(
+                sw_layer1_mm=wb_df["sw1_above_wp"].iloc[i],
+                layer1_thickness_mm=layer1.thickness,
+                airdry_pct=layer1.airdry * 100,
+                wilting_point_pct=layer1.ll * 100,
+                field_capacity_pct=layer1.dul * 100,
+                avgtemp_degc=tmean,
+                organic_carbon_pct=profile.organic_carbon_pct,
+                carbon_nitrogen_ratio=profile.carbon_nitrogen_ratio,
+                nitrogen_mineralisation_coefficient=profile.n_mineralisation_coefficient,
+            )
+            cum_n += daily_n
+            n_series.append(cum_n)
+
+        n_series_by_year[sy] = pd.Series(n_series, index=window.index)
+
+    if not n_series_by_year or current_season_year not in n_series_by_year:
+        return _empty_result("Nitrogen mineralisation gain", "kg/ha", today.year)
+
+    current_val = float(n_series_by_year[current_season_year].iloc[-1])
+    hist_vals   = {y: s.iloc[-1] for y, s in n_series_by_year.items()
+                   if y != current_season_year}
+    if len(hist_vals) < min_comparable_years:
+        pctile = None
+    else:
+        arr    = np.array(list(hist_vals.values()))
+        pctile = float(np.sum(arr <= current_val) / len(arr) * 100)
+
+    # Median series: align all historical years positionally to the LONGEST
+    # historical window, then take day-by-day median. This preserves the full
+    # trajectory shape even when some historical years are slightly shorter.
+    current_idx = n_series_by_year[current_season_year].index
+    n_current   = len(current_idx)
+
+    hist_arrays = []
+    for y, s in n_series_by_year.items():
+        if y == current_season_year:
+            continue
+        arr = s.values
+        if len(arr) < n_current:
+            # Pad shorter series with their final value
+            arr = np.concatenate([arr, np.full(n_current - len(arr), arr[-1])])
+        hist_arrays.append(arr[:n_current])
+
+    if hist_arrays:
+        median_vals  = np.nanmedian(hist_arrays, axis=0)
+        median_series = pd.Series(median_vals, index=current_idx)
+    else:
+        median_series = None
+
+    return MetricResult(
+        label="Nitrogen mineralisation gain",
+        unit="kg/ha",
+        current_value=current_val,
+        percentile=pctile,
+        n_comparable_years=len(hist_vals),
+        series_by_year=n_series_by_year,
+        current_year=current_season_year,
+        median_series=median_series,
+    )
 
 
 def _date_from_md(md, year, start_md=None):
@@ -413,11 +548,31 @@ def compute_yield_projection(climate_df: pd.DataFrame, plant_md, harvest_md, tod
     actual = _build_actual_yield_series(climate_df, plant_date_this_year, today,
                                         soil_water_at_planting_mm, threshold_water_mm, wue_kg_ha_per_mm)
 
-    # Orange "median path" line is built below as cond_p50 — the day-by-day
-    # 50th percentile of all comparable years' FUTURE rainfall increments
-    # from today, each anchored to this season's actual cumulative rain.
-    # This produces a genuinely smooth median rather than a single year's
-    # step-pattern trajectory.
+    # Projected continuation: today -> harvest, using the MEDIAN historical
+    # year's day-to-day RAINFALL INCREMENTS added on top of today's actual
+    # cumulative rain (not the median yield level itself).
+    projected = None
+    if actual is not None and len(actual) > 0 and today < harvest_date_this_year:
+        median_year_rain = _select_median_year_rain_trajectory(rain_traj_by_year, n_full)
+        if median_year_rain is not None:
+            today_idx_in_full = (pd.Timestamp(today) - pd.Timestamp(plant_date_this_year)).days
+            today_idx_in_full = max(0, min(today_idx_in_full, n_full - 1))
+
+            current_cum_rain = climate_df["rain"].fillna(0.0).loc[
+                pd.Timestamp(plant_date_this_year):pd.Timestamp(today)
+            ].sum()
+
+            proj_dates = full_dates[today_idx_in_full:]
+            proj_rain = [current_cum_rain]
+            for i in range(today_idx_in_full + 1, n_full):
+                increment = median_year_rain[i] - median_year_rain[i - 1] if i > 0 else 0.0
+                increment = max(0.0, increment)
+                proj_rain.append(proj_rain[-1] + increment)
+            proj_yield = [
+                calc_yield_outlook(soil_water_at_planting_mm, r, threshold_water_mm, wue_kg_ha_per_mm)
+                for r in proj_rain
+            ]
+            projected = pd.Series(proj_yield, index=proj_dates)
 
     # Conditional (inner, narrowing) plume: today -> harvest, 10th/90th
     # percentile band built by taking EACH historical year's own rainfall
@@ -466,7 +621,7 @@ def compute_yield_projection(climate_df: pd.DataFrame, plant_md, harvest_md, tod
             cond_p50 = pd.Series(np.nanpercentile(cond_yield_matrix, 50, axis=0), index=cond_dates)
             cond_p90 = pd.Series(np.nanpercentile(cond_yield_matrix, 90, axis=0), index=cond_dates)
 
-    return YieldProjection(full_dates, p10, p50, p90, actual, cond_p50, cond_p10, cond_p50, cond_p90,
+    return YieldProjection(full_dates, p10, p50, p90, actual, projected, cond_p10, cond_p50, cond_p90,
                            today, harvest_date_this_year, n_comparable)
 
 
