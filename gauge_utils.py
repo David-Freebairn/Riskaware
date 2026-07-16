@@ -339,7 +339,7 @@ def make_yield_projection_figure(yield_proj):
 
 # ── Generic detail chart ─────────────────────────────────────────────────────
 
-def make_detail_figure(result):
+def make_detail_figure(result, plant_date=None):
     """
     Detail chart for a MetricResult: historical year trajectories on
     the current season's calendar dates, historical median, current season
@@ -397,10 +397,24 @@ def make_detail_figure(result):
         customdata=[str(result.current_year)] * len(current), hovertemplate=hover_fmt,
     ))
 
+    # Plant date vertical line (for nitrogen full-season graph)
+    if plant_date is not None:
+        import pandas as _pd
+        fig.add_vline(
+            x=_pd.Timestamp(plant_date).timestamp() * 1000,
+            line_dash="dash", line_color="#1A4A6E", line_width=1.5,
+            annotation_text="  Plant",
+            annotation_position="top right",
+            annotation_font=dict(color="#1A4A6E", size=11),
+        )
+
+    chart_title = result.label if result.label != result.unit else ""
+
     fig.update_layout(
+        title=dict(text=chart_title, font=dict(size=13, color="#1A4A6E"), x=0, pad=dict(l=0)),
         xaxis_title="Date", yaxis_title=unit,
         height=380,
-        margin=dict(l=40, r=20, t=30, b=40),
+        margin=dict(l=40, r=20, t=40, b=40),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
         hovermode="closest",
     )
