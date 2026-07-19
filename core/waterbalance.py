@@ -87,33 +87,45 @@ def infiltrate_and_drain(sw, layers, infil_mm):
     layers  : list of SoilLayer objects
     infil_mm: water entering top of profile (mm)
 
-    Returns updated sw array and deep_drain (mm leaving bottom layer).
+    Returns updated sw array, deep_drain (mm leaving bottom layer), and
+    add_runoff (mm that didn't fit anywhere in the profile at all — see below).
     """
     sw = sw.copy()
-    deep_drain = 0.0
     input_mm = infil_mm
 
+    # Stage 1: normal drainage — excess above DUL cascades down, rate-limited
+    # by each layer's Ksat (mm/day).
     for i, layer in enumerate(layers):
         sw[i] += input_mm
-        # Excess above saturation becomes surface ponding/runoff (handled upstream)
-        # Excess above DUL drains to next layer within the day
         if sw[i] > layer.dul_mm:
             drain = sw[i] - layer.dul_mm
-            # Limit by Ksat (convert mm/hr to mm/day, cap at excess)
             ksat_day = layer.ksat * 24.0
             drain = min(drain, ksat_day)
             sw[i] -= drain
             input_mm = drain
         else:
             input_mm = 0.0
-
-    # Any drainage from the bottom layer is deep drainage
     deep_drain = input_mm
-    # Enforce physical bounds
-    for i, layer in enumerate(layers):
-        sw[i] = np.clip(sw[i], layer.airdry_mm, layer.sat_mm)
 
-    return sw, deep_drain
+    # Stage 2: "Add runoff" — on a low-Ksat layer, a big rain event can add
+    # more water than Stage 1 was allowed to pass on in one day, leaving
+    # sw[i] above saturation. That water never actually infiltrated that
+    # fast in reality — it ponds at the surface and runs off, rather than
+    # bypassing the Ksat rate limit to drain further down. So any leftover
+    # excess above saturation, layer by layer, is returned as add_runoff
+    # instead of being folded into drainage (or, previously, silently lost
+    # at the final clip).
+    add_runoff = 0.0
+    for i, layer in enumerate(layers):
+        if sw[i] > layer.sat_mm:
+            add_runoff += sw[i] - layer.sat_mm
+            sw[i] = layer.sat_mm
+
+    # Defensive lower bound only — saturation is already enforced above.
+    for i, layer in enumerate(layers):
+        sw[i] = max(sw[i], layer.airdry_mm)
+
+    return sw, deep_drain, add_runoff
 
 
 # ---------------------------------------------------------------------------
@@ -426,7 +438,8 @@ def daily_water_balance(
     infil = max(0.0, rain - runoff)
 
     # -- 2. Infiltrate and drain (before evap reset — infiltration drives reset) --
-    sw, deep_drain = infiltrate_and_drain(sw, layers, infil)
+    sw, deep_drain, add_runoff = infiltrate_and_drain(sw, layers, infil)
+    runoff += add_runoff
 
     # -- 3. Partition ET — HowLeaky Cover model --------------------------------
     residue_frac = max(0.0, total_cover - green_cover)
